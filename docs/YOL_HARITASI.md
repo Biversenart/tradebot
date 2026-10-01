@@ -22,13 +22,13 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Heartbeat (harici izleme → Telegram)
 - [x] Testler: IP uyuşmazlığında emir engelleniyor; proxy düşünce direct'e dönülmüyor
 
-## Aşama 2 — Borsa bağlayıcıları ve veri
-- [ ] `ExchangeAdapter` arayüzü
-- [ ] Binance (spot + futures testnet) adapter'ı — ccxt, proxy ayarlarıyla
-- [ ] BTCTurk adapter'ı
-- [ ] `PaperExchange` (orderbook derinliğine göre dolum)
-- [ ] Market data: WS akışları, mum oluşturucu, warm-up, boşluk doldurma
-- [ ] Geçmiş veri indirme komutu: `bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01` (Parquet)
+## Aşama 2 — Borsa bağlayıcıları ve veri ✅
+- [x] `ExchangeAdapter` arayüzü
+- [x] Binance (spot + futures testnet) adapter'ı — ccxt, proxy ayarlarıyla
+- [x] BTCTurk adapter'ı
+- [x] `PaperExchange` (orderbook derinliğine göre dolum)
+- [x] Market data: WS akışları, mum oluşturucu, warm-up, boşluk doldurma
+- [x] Geçmiş veri indirme komutu: `bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01` (Parquet)
 
 ## Aşama 3 — Analiz motoru (en kritik aşama)
 - [ ] Göstergeler (EMA, RSI, MACD, StochRSI, Bollinger, ATR, ADX, OBV, VWAP) + birim testleri (bilinen değerlerle)

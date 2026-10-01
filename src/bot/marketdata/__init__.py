@@ -1,1 +1,1 @@
-"""WS akışları, mum oluşturucu, orderbook önbelleği. (Aşama 2'de doldurulacak.)"""
+"""Market data: WS streams, candle building, warm-up, gap filling, historical storage."""

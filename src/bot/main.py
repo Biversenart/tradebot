@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -11,11 +12,19 @@ import typer
 
 from bot import __version__
 from bot.config import ConfigError, Settings, load_settings
+from bot.config.schema import ExchangeConfig
 from bot.core.events import AlertLevel, RiskAlert
+from bot.core.timeframes import timeframe_seconds
+from bot.exchanges.errors import ExchangeAdapterError
+from bot.exchanges.factory import build_public_adapter
 from bot.log import configure_logging
+from bot.marketdata.history import download_to_parquet, utc_date
+from bot.net.egress import resolve_egress
 from bot.runtime import BotRuntime
 
 app = typer.Typer(help="Kripto trade & arbitraj botu", no_args_is_help=True)
+data_app = typer.Typer(help="Geçmiş veri komutları", no_args_is_help=True)
+app.add_typer(data_app, name="data")
 
 ConfigOption = Annotated[Path, typer.Option("--config", "-c", help="YAML config dosyası")]
 EnvOption = Annotated[Path, typer.Option("--env-file", help=".env dosyası")]
@@ -93,6 +102,60 @@ def net_check(config: ConfigOption = DEFAULT_CONFIG, env_file: EnvOption = DEFAU
     """Dış IP'yi egress üzerinden doğrula ve borsa erişimini test et (451/403 kontrolü)."""
     settings = _load_or_exit(config, env_file)
     raise typer.Exit(code=asyncio.run(_net_check(settings)))
+
+
+async def _download(
+    settings: Settings,
+    exchange: str,
+    symbols: list[str],
+    timeframes: list[str],
+    since: datetime,
+    until: datetime | None,
+    out: Path,
+) -> None:
+    cfg = settings.config.exchanges.get(exchange) or ExchangeConfig(enabled=True)
+    # Historical data always comes from the real public API (no keys), through the egress.
+    adapter = build_public_adapter(exchange, cfg, resolve_egress(settings), testnet=False)
+    async with adapter:
+        for symbol in symbols:
+            for tf in timeframes:
+                path, n = await download_to_parquet(adapter, symbol, tf, since, out, until)
+                typer.echo(f"{symbol} {tf}: {n} yeni mum -> {path}")
+
+
+@data_app.command("download")
+def data_download(
+    symbol: Annotated[
+        list[str], typer.Option("--symbol", "-s", help="ör. BTC/USDT (tekrarlanabilir)")
+    ],
+    since: Annotated[str, typer.Option("--since", help="Başlangıç (YYYY-MM-DD, UTC)")],
+    tf: Annotated[list[str], typer.Option("--tf", help="Zaman dilimi (tekrarlanabilir)")] = ["1h"],  # noqa: B006
+    until: Annotated[str | None, typer.Option("--until", help="Bitiş (YYYY-MM-DD, UTC)")] = None,
+    exchange: Annotated[str, typer.Option("--exchange", "-e")] = "binance",
+    out: Annotated[Path, typer.Option("--out", help="Veri kök klasörü")] = Path("data"),
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Geçmiş OHLCV verisini indirip Parquet'e yaz (kaldığı yerden devam eder)."""
+    settings = _load_or_exit(config, env_file)
+    configure_logging(settings.config.log_level)
+    for t in tf:
+        timeframe_seconds(t)  # validate early
+    try:
+        asyncio.run(
+            _download(
+                settings,
+                exchange,
+                symbol,
+                tf,
+                utc_date(since),
+                utc_date(until) if until else None,
+                out,
+            )
+        )
+    except ExchangeAdapterError as exc:
+        typer.secho(f"İndirme başarısız ({exc.kind}): {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
 
 
 async def run_bot(settings: Settings, stop: asyncio.Event) -> None:

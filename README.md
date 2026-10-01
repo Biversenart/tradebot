@@ -12,6 +12,7 @@ cp .env.example .env                       # sırlar yalnızca burada; ASLA comm
 cp config/config.example.yaml config/config.yaml
 bot config-check                           # config + .env doğrulama, etkin modu gösterir
 bot net-check                              # dış IP + borsa erişim testi
+bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01   # geçmiş veri → data/ohlcv/*.parquet
 bot run                                    # servisleri başlatır
 ```
 
@@ -19,7 +20,8 @@ Kalite kontrolleri:
 ```bash
 ruff check . && ruff format --check .
 mypy src tests
-pytest            # `integration` işaretli testler varsayılan olarak atlanır
+pytest                  # `integration` işaretli testler varsayılan olarak atlanır
+pytest -m integration   # gerçek borsa uç noktalarına bağlanan testler
 ```
 
 Docker (wireguard + bot + postgres; `.env` içinde `POSTGRES_PASSWORD` ve `deploy/local/wg_confs/wg0.conf` gerekli):
@@ -49,4 +51,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 ## Durum
 - ✅ Aşama 0 — İskelet (config + çift onay, JSON log + maskeleme, Decimal çekirdek modeller, EventBus, CI, Docker)
 - ✅ Aşama 1 — Sabit IP: egress (proxy/WireGuard), fail-closed IP doğrulama, restricted-location testi, heartbeat, kill-switch'li compose, VPS/lokal kurulum rehberleri
-- ⏭️ Sıradaki: Aşama 2 — Borsa bağlayıcıları ve veri
+- ✅ Aşama 2 — ExchangeAdapter, Binance (spot + futures testnet/demo), BTCTurk, PaperExchange (derinliğe göre dolum), market data (WS akışları, mum oluşturucu, warm-up, boşluk doldurma), `bot data download` (Parquet)
+- ⏭️ Sıradaki: Aşama 3 — Analiz motoru

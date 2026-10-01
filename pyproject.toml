@@ -16,6 +16,10 @@ dependencies = [
     "typer>=0.12",
     "aiohttp>=3.9",
     "aiohttp-socks>=0.9",
+    "ccxt>=4.4",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyarrow>=15",
 ]
 
 [project.optional-dependencies]
@@ -25,6 +29,7 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "types-PyYAML>=6.0",
+    "pandas-stubs>=2.2",
 ]
 
 [project.scripts]
@@ -65,3 +70,7 @@ addopts = "-m 'not integration'"
 markers = [
     "integration: gerçek ağa/testnet'e bağlanan testler (CI'da varsayılan olarak atlanır)",
 ]
+
+[[tool.mypy.overrides]]
+module = ["ccxt", "ccxt.*", "pyarrow", "pyarrow.*", "plotly", "plotly.*"]
+ignore_missing_imports = true

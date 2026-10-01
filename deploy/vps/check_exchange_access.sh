@@ -12,7 +12,7 @@ for url in \
   https://api.binance.com/api/v3/ping \
   https://fapi.binance.com/fapi/v1/ping \
   https://testnet.binance.vision/api/v3/ping \
-  https://testnet.binancefuture.com/fapi/v1/ping \
+  https://demo-fapi.binance.com/fapi/v1/ping \
   https://api.btcturk.com/api/v2/server/exchangeinfo
 do
   code=$(curl -s -o /dev/null --max-time 15 -w '%{http_code}' "$url")

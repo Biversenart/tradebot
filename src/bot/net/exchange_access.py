@@ -15,7 +15,7 @@ PING_URLS: dict[str, dict[bool, str]] = {
     },
     "binance_futures": {
         False: "https://fapi.binance.com/fapi/v1/ping",
-        True: "https://testnet.binancefuture.com/fapi/v1/ping",
+        True: "https://demo-fapi.binance.com/fapi/v1/ping",
     },
     "btcturk": {
         False: "https://api.btcturk.com/api/v2/server/exchangeinfo",

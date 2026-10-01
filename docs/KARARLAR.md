@@ -24,3 +24,10 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Kill-switch | iptables OUTPUT DROP, wg-quick'ten bağımsız; yalnızca wg0, compose alt ağı ve VPS UDP portu | Tünel düşerse doğrudan çıkış imkânsız |
 | 2026-10-02 | Postgres erişimi | Kill-switch ağında sabit IP (172.28.0.10) | DNS tünelden gider; compose servis adı çözülmez |
 | 2026-10-02 | Dante | Yalnızca tünel adresinde dinler (internete kapalı) | SOCKS parolası düz metin; tünel içinde şifreli kalır |
+| 2026-10-02 | Binance futures testnet | Spot testnet: `testnet.binance.vision` (sandbox); futures "testnet": Binance **demo trading** (`demo-fapi.binance.com`), anahtarlar `BINANCE_TESTNET_*` | ccxt eski futures sandbox'ını kaldırdı |
+| 2026-10-02 | BTCTurk | Test ağı yok → testnet modunda anahtar bağlanmaz, emir reddedilir; ccxt.pro WS yok → REST yoklama (2 sn) | Gerçek parayla yanlışlıkla işlem olmasın |
+| 2026-10-02 | Emir tipi ayrımı | Strateji `OrderIntent`, adapter yalnızca `OrderRequest` (risk onaylı) kabul eder | Kural 4'ün tip seviyesinde ayrımı |
+| 2026-10-02 | Stop emirleri | `STOP_MARKET/STOP_LIMIT` → ccxt `stopLossPrice` (spot STOP_LOSS(_LIMIT), futures STOP_MARKET) | Kural 9: borsa tarafı stop |
+| 2026-10-02 | PaperExchange | Spot; market emri derinliği tüketir (IOC), limit kalan kısım maker, stop bid/ask ile tetiklenir; komisyon quote cinsinden; rezervasyon free→used | Gerçekçi kayma + basit muhasebe |
+| 2026-10-02 | Geçmiş veri | Parquet `data/ohlcv/<borsa>/<BASE-QUOTE>/<tf>.parquet`, float64 kolonlar; Candle'a `Decimal(str(x))` | ccxt OHLCV'yi float verir; para hesapları Decimal kalır |
+| 2026-10-02 | Paper veri kaynağı | Paper modda gerçek (live) public uç noktalar, anahtarsız | Testnet fiyatları gerçek piyasayı yansıtmaz |
