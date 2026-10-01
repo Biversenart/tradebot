@@ -36,6 +36,16 @@ class Sizer(Protocol):
     def size(self, equity: Decimal, entry: Decimal, stop: Decimal, signal: Signal) -> Decimal: ...
 
 
+class FeedbackSizer(Sizer, Protocol):
+    """Sizers that learn from results (growth sizing)."""
+
+    def on_equity(self, equity: Decimal) -> None: ...
+
+    def on_trade_closed(
+        self, strategy: str, symbol: str, pnl: Decimal, r_multiple: Decimal
+    ) -> None: ...
+
+
 @dataclass
 class FixedFractionalSizer:
     """Risk `risk_pct` of current equity per trade; notional capped at `max_notional_pct`."""
@@ -215,6 +225,7 @@ class Backtester:
                     if not op.pos.is_open:
                         open_.remove(op)
                         trades.append(op.record)
+                        self._feedback_trade(op.record)
                 last_close[s] = c
                 # 3) new signal at the close of this bar
                 if not in_window:
@@ -237,8 +248,12 @@ class Backtester:
                 if sig is not None:
                     pending.append((s, _Pending(sig, i + self.cfg.latency_bars, i)))
             if in_window or open_:
+                eq_now = equity_now()
                 eq_index.append(pd.Timestamp(t))
-                eq_values.append(float(equity_now()))
+                eq_values.append(float(eq_now))
+                on_eq = getattr(self.sizer, "on_equity", None)
+                if on_eq is not None:
+                    on_eq(eq_now)
             if self.trade_end is not None and t >= self.trade_end and not open_:
                 break
         # close anything still open at the last available close
@@ -261,6 +276,11 @@ class Backtester:
             symbols=symbols,
             bars_per_year=_bars_per_year(self.data),
         )
+
+    def _feedback_trade(self, rec: TradeRecord) -> None:
+        hook = getattr(self.sizer, "on_trade_closed", None)
+        if hook is not None:
+            hook(rec.strategy, rec.symbol, rec.pnl, rec.r_multiple)
 
     def _enter(
         self, signal: Signal, open_px: Decimal, t: pd.Timestamp, i: int, realized_equity: Decimal

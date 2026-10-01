@@ -225,3 +225,31 @@ def test_backtest_missing_data_cli(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 1 and "bot data download" in result.output
+
+
+def test_backtest_sizing_cli(tmp_path: Path) -> None:
+    data, cfg = _bt_setup(tmp_path)
+    out = tmp_path / "siz"
+    result = runner.invoke(
+        app,
+        [
+            "backtest",
+            "sizing",
+            "-s",
+            "BTC/USDT",
+            "--strategy",
+            "breakout",
+            "--since",
+            "2024-01-01",
+            "--data",
+            str(data),
+            "--out",
+            str(out),
+            "-c",
+            str(cfg),
+            "--env-file",
+            str(tmp_path / "none.env"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (out / "BOYUTLAMA.md").exists()
