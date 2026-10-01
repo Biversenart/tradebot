@@ -6,9 +6,14 @@ import asyncio
 import contextlib
 from datetime import timedelta
 
+import uvicorn
+
 from bot import __version__
+from bot.analysis.service import AnalysisOutput, run_analysis
+from bot.api.app import create_app
 from bot.arbitrage.service import arbitrage_symbols
 from bot.config import Mode, Settings
+from bot.control import BotControl
 from bot.core.event_bus import EventBus
 from bot.core.events import AlertLevel, RiskAlert
 from bot.exchanges.base import ExchangeAdapter
@@ -21,6 +26,7 @@ from bot.net.errors import EgressMisconfiguredError
 from bot.net.exchange_access import check_exchange_access, ping_url
 from bot.net.ip_guard import IpFetcher, IpGuard
 from bot.notify.heartbeat import Heartbeat, Pinger
+from bot.notify.telegram import TelegramApi, TelegramBot
 from bot.trading import TradingStack
 
 _log = get_logger("bot")
@@ -75,6 +81,8 @@ class BotRuntime:
                 )
 
         self.trading: TradingStack | None = None
+        self.control: BotControl | None = None
+        self._panel: uvicorn.Server | None = None
         self._ready_feeds: list[MarketDataFeed] = []
         self.heartbeat: Heartbeat | None = None
         url = settings.secrets.heartbeat_url
@@ -146,8 +154,78 @@ class BotRuntime:
                 self.orders_allowed,
             )
             await self.trading.start(self.settings, stop, tasks)
+            await self._start_interfaces(stop, tasks)
         for feed in self._ready_feeds:
             tasks.append(asyncio.create_task(feed.run(stop), name=f"feed:{feed.adapter.name}"))
+
+    async def _start_interfaces(self, stop: asyncio.Event, tasks: list[asyncio.Task[None]]) -> None:
+        """Telegram bot + web panel (both optional, both need their secrets)."""
+        stack = self.trading
+        if stack is None:
+            return
+        cfg, sec = self.settings.config, self.settings.secrets
+        coord = stack.coordinator
+        settings = self.settings
+
+        async def analyze(symbol: str) -> AnalysisOutput:
+            return await run_analysis(settings, symbol)
+
+        control = BotControl(
+            settings,
+            stack.repo,
+            coord.kill_switch,
+            stack.strategies,
+            equity=lambda: coord.last_equity,
+            reserve=lambda: coord.sizer.reserve,
+            egress_ok=self.orders_allowed,
+            analyze=analyze,
+            persist=coord.persist,
+        )
+        self.control = control
+        if stack.runner is not None:
+            stack.runner.allow = control.strategy_allowed
+        tg = cfg.notify.telegram
+        if tg.enabled:
+            if sec.telegram_bot_token is None or not sec.telegram_chat_id:
+                _log.warning("telegram_disabled_missing_secrets")
+            else:
+                bot = TelegramBot(
+                    TelegramApi(sec.telegram_bot_token, self.http),
+                    sec.telegram_chat_id,
+                    control,
+                    self.bus,
+                    tg,
+                    base_currency=cfg.base_currency,
+                )
+                tasks.append(asyncio.create_task(bot.poll(stop), name="telegram-poll"))
+                tasks.append(asyncio.create_task(bot.summary_loop(stop), name="telegram-summary"))
+        if cfg.api.enabled:
+            token = sec.api_auth_token
+            if token is None or len(token.get_secret_value()) < 16:
+                _log.warning("panel_disabled_missing_or_weak_token")
+            else:
+                server = uvicorn.Server(
+                    uvicorn.Config(
+                        create_app(control, token),
+                        host=cfg.api.host,
+                        port=cfg.api.port,
+                        log_config=None,
+                        access_log=False,
+                        lifespan="off",
+                    )
+                )
+                self._panel = server
+
+                async def serve() -> None:
+                    await server.serve()
+
+                async def stopper() -> None:
+                    await stop.wait()
+                    server.should_exit = True
+
+                tasks.append(asyncio.create_task(serve(), name="panel"))
+                tasks.append(asyncio.create_task(stopper(), name="panel-stop"))
+                _log.info("panel_started", host=cfg.api.host, port=cfg.api.port)
 
     async def run(self, stop: asyncio.Event) -> None:
         bus_task = asyncio.create_task(self.bus.run(), name="event-bus")

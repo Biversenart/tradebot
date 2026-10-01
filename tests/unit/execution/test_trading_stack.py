@@ -13,6 +13,7 @@ from bot.config.secrets import Secrets
 from bot.core.event_bus import EventBus
 from bot.core.events import SignalEvent
 from bot.core.models import OrderBook, OrderBookLevel
+from bot.exchanges.base import ExchangeAdapter
 from bot.exchanges.paper import PaperExchange
 from bot.marketdata.feed import MarketDataFeed
 from bot.trading import TradingStack
@@ -93,7 +94,9 @@ async def test_stack_reconciles_warms_up_and_trades(tmp_path: Path) -> None:
 
 
 async def test_arbitrage_wiring_paper_executes_testnet_logs_only(tmp_path: Path) -> None:
-    exchanges = {n: PaperExchange(n, initial_balances={"USDT": D(100)}) for n in ("a", "b")}
+    exchanges: dict[str, ExchangeAdapter] = {
+        n: PaperExchange(n, initial_balances={"USDT": D(100)}) for n in ("a", "b")
+    }
     cfg = AppConfig.model_validate(
         {
             "arbitrage": {"cross_exchange": {"enabled": True, "pairs": ["BTC/USDT"]}},
@@ -109,3 +112,52 @@ async def test_arbitrage_wiring_paper_executes_testnet_logs_only(tmp_path: Path)
         assert stack.arbitrage is not None
         assert (stack.arbitrage.executor is not None) is has_exec
         await stack.close()
+
+
+async def test_runtime_starts_panel_and_skips_telegram_without_secrets(tmp_path: Path) -> None:
+    import socket
+
+    import aiohttp
+
+    from bot.runtime import BotRuntime
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    cfg = AppConfig.model_validate(
+        {
+            "marketdata": {"enabled": False},
+            "api": {"enabled": True, "host": "127.0.0.1", "port": port},
+            "notify": {"telegram": {"enabled": True}},
+        }
+    )
+    secrets = Secrets(
+        _env_file=None,
+        api_auth_token=SecretStr("panel-token-0123456789"),
+        database_url=SecretStr(f"sqlite+aiosqlite:///{tmp_path / 'r.db'}"),
+    )
+    settings = Settings(cfg, secrets, Mode.PAPER)
+    rt = BotRuntime(settings)
+    ex = PaperExchange("paper", initial_balances={"USDT": D(100)})
+    rt.trading = await TradingStack.build(settings, rt.bus, {"paper": ex}, {}, lambda: True)
+    stop = asyncio.Event()
+    tasks: list[asyncio.Task[None]] = []
+    await rt._start_interfaces(stop, tasks)
+    assert rt.control is not None and rt._panel is not None
+    assert {t.get_name() for t in tasks} == {"panel", "panel-stop"}  # no telegram tasks
+    async with aiohttp.ClientSession() as http:
+        for _ in range(100):
+            try:
+                async with http.get(
+                    f"http://127.0.0.1:{port}/api/status",
+                    headers={"Authorization": "Bearer panel-token-0123456789"},
+                ) as r:
+                    data = await r.json()
+                    break
+            except aiohttp.ClientConnectorError:
+                await asyncio.sleep(0.05)
+        assert data["mode"] == "paper"
+    stop.set()
+    await asyncio.wait_for(asyncio.gather(*tasks), 5)
+    await rt.trading.close()
+    await rt.http.close()
