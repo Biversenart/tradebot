@@ -126,9 +126,27 @@ backtest:
   param_grids: {}                # ör. { ema_crossover: { fast: [5, 9, 13], slow: [21, 34, 55] } }
 
 arbitrage:
-  cross_exchange: { enabled: false, pairs: ["BTC/USDT"], min_net_spread_pct: 0.25, max_leg_latency_ms: 500 }
-  triangular:     { enabled: false, exchange: binance, min_net_profit_pct: 0.15 }
-  funding_rate:   { enabled: false }
+  cross_exchange:
+    enabled: false
+    pairs: ["BTC/USDT"]
+    min_net_spread_pct: 0.25      # komisyon + kayma tamponu SONRASI net eşik
+    max_leg_latency_ms: 500       # orderbook yaşı / bacaklar arası zaman farkı
+    slippage_buffer_pct: 0.05     # derinlik tüketimine ek güvenlik payı
+    max_notional_quote: 1000
+    fx_symbols: {}                # TRY köprüsü: { btcturk: "USDT/TRY" } (BTC/USDT <-> BTC/TRY)
+  triangular:
+    enabled: false
+    exchange: binance
+    min_net_profit_pct: 0.15
+    start_asset: USDT
+    max_notional_quote: 1000
+    max_book_age_ms: 1000
+    symbols: ["BTC/USDT", "ETH/BTC", "ETH/USDT"]   # döngü marketleri (akışa eklenir)
+  funding_rate: { enabled: false }
+  rebalance:
+    min_share_pct: 20             # bir borsada varlık payı bunun altına düşerse uyarı (manuel transfer)
+  execute_in_paper: true          # v1: fırsatlar HER ZAMAN loglanır; işlem yalnızca paper modda
+  min_interval_seconds: 2         # aynı rota için log tekrar aralığı
 
 risk:
   risk_per_trade_pct: 1.0

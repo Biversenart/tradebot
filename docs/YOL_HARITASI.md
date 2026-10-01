@@ -61,12 +61,12 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Reconciliation (yeniden başlatmada durum eşitleme)
 - [x] Depolama: SQLAlchemy modelleri + alembic migration
 
-## Aşama 6 — Arbitraj
-- [ ] Cross-exchange tarayıcı (net spread, derinlik, gecikme)
-- [ ] Triangular tarayıcı
-- [ ] Leg risk yönetimi (bir bacak dolmazsa hedge/kapat)
-- [ ] Rebalans uyarıları
-- [ ] (Opsiyonel) TRY köprüsü, funding rate
+## Aşama 6 — Arbitraj ✅
+- [x] Cross-exchange tarayıcı (net spread, derinlik, gecikme)
+- [x] Triangular tarayıcı
+- [x] Leg risk yönetimi (bir bacak dolmazsa hedge/kapat)
+- [x] Rebalans uyarıları
+- [x] (Opsiyonel) TRY köprüsü (`fx_symbols`) — funding rate henüz yok
 
 ## Aşama 7 — Bildirim ve panel
 - [ ] Telegram bildirimleri + komutlar

@@ -65,6 +65,12 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Reconciliation | Açılışta: DB açık emirleri tazele, kendi öneklerimizi sahiplen, yabancılara dokunma, her pozisyon için canlı stop doğrula (yoksa koy, olmuyorsa kapat), spot bakiyesi pozisyondan azsa düzelt | Yeniden başlatmada borsa = gerçek kaynak |
 | 2026-10-02 | Decimal saklama | DB'de Decimal metin olarak (DecimalString), datetime daima UTC/tz-aware | SQLite DECIMAL desteklemez; kayıpsız |
 | 2026-10-02 | Testnet doğrulaması | Reconciliation PaperExchange "çökme/yeniden başlatma" senaryolarıyla birim testinde; gerçek testnet testi `integration` işaretli | Ortam testnet'e erişemiyor |
+| 2026-10-02 | Arbitraj net spread | `(satış_ort − alış_ort)/alış_ort − taker_A − taker_B − kayma_tamponu(%0.05)`; ortalamalar orderbook yürütülerek; boyut, marjinal (en derin) kademe hâlâ eşiği geçtiği sürece büyür | Tepe fiyatla hesap derinlikte zarar ettirir |
+| 2026-10-02 | Arbitraj gecikmesi | Orderbook > 500 ms eski veya iki borsa arası > 500 ms fark → fırsat sayılmaz | Bayat fiyat arbitraj değildir |
+| 2026-10-02 | Arbitraj v1 | Fırsatlar her modda loglanır (DB `arbitrage_opportunities`); yürütme yalnızca paper modda | Prompt 6; leg riski canlıda sermaye riski |
+| 2026-10-02 | Leg risk | Cross: iki bacak eşzamanlı IOC-limit (en derin fiyat), kalan iptal; dolum farkı piyasa emriyle hedge (fazla alış → sat, eksik alış → geri al, satış geliriyle sınırlı). Üçgen: sıralı; bir bacak düşerse tamamlanan bacaklar tersine çevrilip başlangıç varlığına dönülür | Net envanteri düz tut |
+| 2026-10-02 | Hedge onayı | Hedge emirleri reduce-only olarak `assess_exit`'ten geçer (kill switch altında da izinli) | Riski azaltan işlem engellenmemeli |
+| 2026-10-02 | Rebalans | Bir borsada base/quote payı %20 altına düşerse uyarı; transfer daima manuel | Kural 3: para çekme yok |
 
 ## Boyutlama formülleri (Aşama 5)
 
