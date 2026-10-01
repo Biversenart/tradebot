@@ -13,6 +13,7 @@ from bot.config.secrets import Secrets
 from bot.core.event_bus import EventBus
 from bot.core.events import SignalEvent
 from bot.core.models import OrderBook, OrderBookLevel
+from bot.exchanges.base import ExchangeAdapter
 from bot.exchanges.paper import PaperExchange
 from bot.marketdata.feed import MarketDataFeed
 from bot.trading import TradingStack
@@ -93,7 +94,9 @@ async def test_stack_reconciles_warms_up_and_trades(tmp_path: Path) -> None:
 
 
 async def test_arbitrage_wiring_paper_executes_testnet_logs_only(tmp_path: Path) -> None:
-    exchanges = {n: PaperExchange(n, initial_balances={"USDT": D(100)}) for n in ("a", "b")}
+    exchanges: dict[str, ExchangeAdapter] = {
+        n: PaperExchange(n, initial_balances={"USDT": D(100)}) for n in ("a", "b")
+    }
     cfg = AppConfig.model_validate(
         {
             "arbitrage": {"cross_exchange": {"enabled": True, "pairs": ["BTC/USDT"]}},
