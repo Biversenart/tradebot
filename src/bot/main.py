@@ -20,6 +20,7 @@ from bot.analysis.report import render_report
 from bot.backtest.engine import Backtester
 from bot.backtest.metrics import compute_metrics
 from bot.backtest.runner import NoDataError, default_out_dir, load_history, run_report
+from bot.backtest.sizing_compare import compare_sizing, sizing_markdown
 from bot.config import ConfigError, Settings, load_settings
 from bot.config.schema import ExchangeConfig
 from bot.core.events import AlertLevel, RiskAlert
@@ -372,6 +373,34 @@ def data_synthetic(
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(path)
         typer.echo(f"{sym}: {len(df)} sentetik mum -> {path}")
+
+
+@bt_app.command("sizing")
+def backtest_sizing(
+    symbol: SymbolsOpt,
+    strategy: StrategyOpt = [],  # noqa: B006
+    tf: Annotated[str, typer.Option("--tf")] = "1h",
+    since: Annotated[str | None, typer.Option("--since")] = "2022-01-01",
+    until: Annotated[str | None, typer.Option("--until")] = None,
+    exchange: Annotated[str, typer.Option("--exchange", "-e")] = "binance",
+    data: Annotated[Path, typer.Option("--data")] = Path("data"),
+    out: Annotated[Path | None, typer.Option("--out")] = None,
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Sabit %1 risk ile büyüme odaklı boyutlamayı aynı sinyallerde karşılaştır."""
+    settings = _load_or_exit(config, env_file)
+    names = strategy or [
+        n for n, c in settings.config.strategies.items() if c.enabled and n in STRATEGIES
+    ]
+    frames = _bt_frames(symbol, tf, exchange, data, since, until)
+    rows = compare_sizing(frames, names or list(STRATEGIES), settings.config)
+    md = sizing_markdown(rows, f"Veri: {exchange} {tf}")
+    path = (out or default_out_dir()) / "BOYUTLAMA.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(md, encoding="utf-8")
+    typer.echo(md)
+    typer.echo(f"Rapor: {path}")
 
 
 async def run_bot(settings: Settings, stop: asyncio.Event) -> None:
