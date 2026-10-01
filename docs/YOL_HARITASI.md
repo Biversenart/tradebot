@@ -33,11 +33,11 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 ## Aşama 3 — Analiz motoru (en kritik aşama)
 - [x] Göstergeler (EMA, RSI, MACD, StochRSI, Bollinger, ATR, ADX, OBV, VWAP) + birim testleri (bilinen değerlerle)
 - [x] Rejim tespiti
-- [ ] Swing noktaları, HH/HL sınıflandırma, BOS/CHoCH
-- [ ] Destek/direnç ve arz/talep bölgeleri (güç puanıyla), likidite havuzları, Fibonacci
-- [ ] Hacim profili (POC/VAH/VAL), anchored VWAP
-- [ ] Divergence tespiti
-- [ ] Mum ve grafik formasyonları
+- [x] Swing noktaları, HH/HL sınıflandırma, BOS/CHoCH
+- [x] Destek/direnç ve arz/talep bölgeleri (güç puanıyla), likidite havuzları, Fibonacci
+- [x] Hacim profili (POC/VAH/VAL), anchored VWAP
+- [x] Divergence tespiti
+- [x] Mum ve grafik formasyonları
 - [ ] Confluence puanlayıcı (ağırlıklar config'den)
 - [ ] `TradePlan` üretici (giriş bölgesi, yapısal SL + ATR tamponu, TP1-3, R:R filtresi, geçersizlik)
 - [ ] `bot analyze <SYMBOL>` → Türkçe rapor + plotly HTML grafik

@@ -53,6 +53,32 @@ analysis:
     volatility_lookback: 500      # ATR% medyan penceresi
     volatile_atr_ratio: 2.0       # ATR% >= 2 x medyan: yüksek volatilite
     squeeze_bb_percentile: 0.15   # BB genişliği alt %15: sıkışma
+  structure:
+    swing_lookback: 3             # fraktal: her iki yanda N mum
+  zones:
+    cluster_atr: 0.6              # swing fiyatları bu x ATR içindeyse aynı bölge
+    min_touches: 2
+    max_zones: 8
+    impulse_atr: 1.5              # arz/talep: gövde >= 1.5 ATR olan itki mumu
+    base_max_body_atr: 0.5        # itki öncesi taban mumu gövdesi <= 0.5 ATR
+    equal_level_atr: 0.15         # eşit tepe/dip toleransı (likidite havuzu)
+    proximity_atr: 1.0            # "bölgeye yakın" eşiği
+  volume_profile:
+    bins: 50
+    value_area_pct: 70
+    lookback_bars: 300
+  patterns:
+    doji_body_pct: 0.1
+    pin_wick_body_ratio: 2
+    level_tolerance_atr: 0.5      # çift tepe/OBO seviye toleransı
+    min_pattern_bars: 10
+    triangle_flat_slope_atr: 0.05
+    flag_pole_atr: 3
+    channel_lookback: 50
+    channel_std: 2
+  divergence:
+    min_bars_between: 5
+    max_bars_between: 60
   confluence:
     min_score: 70
     weights:
