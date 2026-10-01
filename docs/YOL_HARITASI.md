@@ -12,15 +12,15 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] GitHub Actions: ruff, mypy, pytest, gitleaks, pip-audit
 - [x] Dockerfile + docker-compose (bot, postgres)
 
-## Aşama 1 — Ağ katmanı ve sabit IP
-- [ ] `net/egress.py`: proxy URL'lerinden HTTP/SOCKS/WS ayarı üretme
-- [ ] `net/ip_guard.py`: 2 bağımsız servisle dış IP doğrulama, periyodik kontrol, fail-closed
-- [ ] `deploy/`: WireGuard sunucu/istemci şablonu, Dante (SOCKS5) örnek config, ufw kuralları, kurulum README'si
-- [ ] docker-compose'a `wireguard` istemci servisi; bot `network_mode: service:wireguard`, tünel dışı çıkış iptables ile kapalı
-- [ ] `deploy/ORACLE_KURULUM.md`: Oracle Cloud Always Free + reserved IP + WireGuard sunucu + firewall (spec §5.11.2)
-- [ ] `deploy/LOKAL_KURULUM.md`: Windows (Docker Desktop/WSL2) ve Linux için adım adım lokal kurulum, uyku modu kapatma, otomatik başlatma
-- [ ] Heartbeat (harici izleme → Telegram)
-- [ ] Testler: IP uyuşmazlığında emir engelleniyor; proxy düşünce direct'e dönülmüyor
+## Aşama 1 — Ağ katmanı ve sabit IP ✅
+- [x] `net/egress.py`: proxy URL'lerinden HTTP/SOCKS/WS ayarı üretme
+- [x] `net/ip_guard.py`: 2 bağımsız servisle dış IP doğrulama, periyodik kontrol, fail-closed
+- [x] `deploy/`: WireGuard sunucu/istemci şablonu, Dante (SOCKS5) örnek config, ufw kuralları, kurulum README'si
+- [x] docker-compose'a `wireguard` istemci servisi; bot `network_mode: service:wireguard`, tünel dışı çıkış iptables ile kapalı
+- [x] `deploy/ORACLE_KURULUM.md`: Oracle Cloud Always Free + reserved IP + WireGuard sunucu + firewall (spec §5.11.2)
+- [x] `deploy/LOKAL_KURULUM.md`: Windows (Docker Desktop/WSL2) ve Linux için adım adım lokal kurulum, uyku modu kapatma, otomatik başlatma
+- [x] Heartbeat (harici izleme → Telegram)
+- [x] Testler: IP uyuşmazlığında emir engelleniyor; proxy düşünce direct'e dönülmüyor
 
 ## Aşama 2 — Borsa bağlayıcıları ve veri
 - [ ] `ExchangeAdapter` arayüzü
