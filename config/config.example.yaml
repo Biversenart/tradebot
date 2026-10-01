@@ -1,0 +1,103 @@
+# Örnek yapılandırma — kopyala: config/config.yaml
+mode: paper                     # backtest | paper | testnet | live
+live_trading_confirmed: false   # live için .env'de TRADING_MODE=live ile BİRLİKTE true olmalı
+base_currency: USDT
+
+egress:
+  mode: proxy                   # direct_vps | wireguard | proxy | managed_proxy
+  # proxy URL'si ve beklenen IP .env'den okunur (EGRESS_PROXY_URL, EGRESS_EXPECTED_IP)
+  check_interval_minutes: 5
+  ip_check_services: ["https://api.ipify.org", "https://ifconfig.me/ip"]
+  fail_closed: true             # değiştirilemez; kod false'u reddeder
+
+exchanges:
+  binance:
+    enabled: true
+    market_type: spot           # spot | futures
+    testnet: true
+  btcturk:
+    enabled: false
+
+universe:
+  mode: fixed                   # fixed | scanner
+  symbols: ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+  scanner:
+    top_n: 10
+    min_24h_volume_usdt: 50000000
+    max_spread_pct: 0.05
+
+analysis:
+  timeframes:
+    long: ["1w", "1d"]
+    mid: ["4h", "1h"]
+    short: ["15m", "5m"]
+  confluence:
+    min_score: 70
+    weights:
+      htf_trend_alignment: 25
+      zone_proximity: 20
+      structure_confirmation: 15
+      volume_confirmation: 10
+      pattern: 10
+      divergence: 10
+      regime_fit: 10
+  trade_plan:
+    min_risk_reward: 2.0
+    sl_atr_buffer: 0.5
+    take_profits: [1.0, 2.0, 3.0]   # R katları
+    tp1_close_pct: 40
+    move_sl_to_breakeven_after_tp1: true
+    trailing: atr                    # atr | structure | none
+    time_exit_bars: 48
+  llm_commentary: false
+
+strategies:
+  ema_crossover:   { enabled: true,  fast: 9, slow: 21, trend_filter: 200, timeframe: 1h }
+  rsi_reversion:   { enabled: true,  period: 14, buy_below: 30, sell_above: 70, timeframe: 15m }
+  breakout:        { enabled: true,  donchian: 20, volume_mult: 1.5, timeframe: 4h }
+  grid:            { enabled: false, lower: 0, upper: 0, levels: 10 }
+  dca:             { enabled: false }
+  signal_combiner: { enabled: false }
+
+arbitrage:
+  cross_exchange: { enabled: false, pairs: ["BTC/USDT"], min_net_spread_pct: 0.25, max_leg_latency_ms: 500 }
+  triangular:     { enabled: false, exchange: binance, min_net_profit_pct: 0.15 }
+  funding_rate:   { enabled: false }
+
+risk:
+  risk_per_trade_pct: 1.0
+  max_open_positions: 5
+  max_exposure_per_symbol_pct: 20
+  max_total_exposure_pct: 60
+  daily_loss_limit_pct: 3.0
+  max_drawdown_pct: 10.0
+  max_consecutive_errors: 5
+  max_leverage: 1
+  max_spread_pct: 0.1
+  on_kill_switch: close_all      # close_all | keep_positions
+  max_correlation: 0.8
+  var_confidence: 0.95
+  growth:
+    compounding: true
+    quality_multiplier: { high_score: 1.5, low_score: 0.5 }   # risk_per_trade çarpanı
+    kelly: { enabled: false, fraction: 0.25, min_trades: 100 }
+    drawdown_scaling: { start_pct: 5, risk_factor: 0.5 }
+    loss_streak: { count: 3, risk_factor: 0.5 }
+    profit_lock: { enabled: true, every_gain_pct: 20, lock_pct: 25 }
+    auto_allocation: { enabled: true, lookback_trades: 30, pause_if_expectancy_below: 0 }
+
+operations:
+  live_capital_cap_pct: 10
+  shadow_mode: true
+  stablecoin_depeg_threshold_pct: 0.5
+  max_balance_per_exchange_usdt: 5000
+  low_liquidity_mode: { enabled: true, weekend_risk_factor: 0.5 }
+  watch_exchange_announcements: true
+
+notify:
+  telegram: { enabled: true, daily_summary_hour: 23 }
+
+api:
+  enabled: true
+  host: 127.0.0.1
+  port: 8080
