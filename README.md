@@ -28,6 +28,8 @@ pytest                  # `integration` işaretli testler varsayılan olarak atl
 pytest -m integration   # gerçek borsa uç noktalarına bağlanan testler
 ```
 
+Veritabanı migration (postgres): `docker compose run --rm bot alembic upgrade head` (SQLite'ta tablolar otomatik oluşur).
+
 Docker (wireguard + bot + postgres; `.env` içinde `POSTGRES_PASSWORD` ve `deploy/local/wg_confs/wg0.conf` gerekli):
 ```bash
 docker compose up -d --build
@@ -59,4 +61,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 2 — ExchangeAdapter, Binance (spot + futures testnet/demo), BTCTurk, PaperExchange (derinliğe göre dolum), market data (WS akışları, mum oluşturucu, warm-up, boşluk doldurma), `bot data download` (Parquet)
 - ✅ Aşama 3 — Analiz motoru: göstergeler, rejim, yapı (BOS/CHoCH), bölgeler, hacim profili, uyumsuzluk, formasyonlar, confluence, TradePlan, `bot analyze`
 - ✅ Aşama 4 — 5 strateji + sinyal birleştirici (canlı/backtest aynı sınıflar), olay güdümlü backtest, metrikler, walk-forward + parametre taraması, HTML rapor, çıkış yönetimi
-- ⏭️ Sıradaki: Aşama 5 — Risk ve emir yürütme
+- ✅ Aşama 5 — RiskManager (ApprovedIntent), büyüme odaklı boyutlama, kill switch, portföy riski; emir yürütme (borsa tarafı zorunlu stop, idempotent id, kısmi dolum), reconciliation, SQLAlchemy + alembic, `bot run` ile uçtan uca paper/testnet akışı
+- ⏭️ Sıradaki: Aşama 6 — Arbitraj
