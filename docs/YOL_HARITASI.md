@@ -31,8 +31,8 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Geçmiş veri indirme komutu: `bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01` (Parquet)
 
 ## Aşama 3 — Analiz motoru (en kritik aşama)
-- [ ] Göstergeler (EMA, RSI, MACD, StochRSI, Bollinger, ATR, ADX, OBV, VWAP) + birim testleri (bilinen değerlerle)
-- [ ] Rejim tespiti
+- [x] Göstergeler (EMA, RSI, MACD, StochRSI, Bollinger, ATR, ADX, OBV, VWAP) + birim testleri (bilinen değerlerle)
+- [x] Rejim tespiti
 - [ ] Swing noktaları, HH/HL sınıflandırma, BOS/CHoCH
 - [ ] Destek/direnç ve arz/talep bölgeleri (güç puanıyla), likidite havuzları, Fibonacci
 - [ ] Hacim profili (POC/VAH/VAL), anchored VWAP

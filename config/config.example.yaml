@@ -33,6 +33,26 @@ analysis:
     long: ["1w", "1d"]
     mid: ["4h", "1h"]
     short: ["15m", "5m"]
+  indicators:
+    ema_periods: [9, 21, 50, 200]
+    rsi_period: 14
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    bb_period: 20
+    bb_std: 2
+    atr_period: 14
+    adx_period: 14
+    volume_sma: 20
+  regime:
+    adx_trend: 25                 # ADX >= bu değer: trend
+    ema_fast: 50                  # eğimi ölçülen EMA
+    ema_slow: 200                 # fiyatın üstünde/altında olduğu EMA
+    slope_bars: 10
+    percentile_lookback: 200      # Bollinger genişliği yüzdeliği penceresi
+    volatility_lookback: 500      # ATR% medyan penceresi
+    volatile_atr_ratio: 2.0       # ATR% >= 2 x medyan: yüksek volatilite
+    squeeze_bb_percentile: 0.15   # BB genişliği alt %15: sıkışma
   confluence:
     min_score: 70
     weights:
