@@ -1,0 +1,16 @@
+.env
+*.env
+!.env.example
+config/config.yaml
+data/
+*.db
+*.parquet
+reports/
+logs/
+__pycache__/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+deploy/**/*.key
+deploy/**/wg0.conf
