@@ -33,3 +33,6 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Paper veri kaynağı | Paper modda gerçek (live) public uç noktalar, anahtarsız | Testnet fiyatları gerçek piyasayı yansıtmaz |
 | 2026-10-02 | Gösterge hesapları | Kendi implementasyonumuz (pandas-ta değil); EMA/RMA SMA ile tohumlanır (TradingView/TA-Lib uyumlu); göstergeler float, para hesapları Decimal | pandas-ta bakımı zayıf; RSI StockCharts referansıyla birebir doğrulandı |
 | 2026-10-02 | Volatil rejim | ATR% ≥ 2 × son 500 mumun medyanı | Kısa pencereli yüzdelik, uzun süren kaosu "normal" sayıyordu |
+| 2026-10-02 | Swing tespiti | Fraktal (N=3); swing yalnızca i+N'de onaylanır, BOS/CHoCH buna göre (look-ahead yok) | Canlı ve backtest aynı davranır |
+| 2026-10-02 | Bölge gücü | 0.4·dokunma + 0.3·yakınlık(recency) + 0.3·hacim (normalize, 0–100) | Basit, açıklanabilir puan |
+| 2026-10-02 | Hacim profili | Mum hacmi high–low aralığına eşit dağıtılır; value area POC'tan komşu büyük bin eklenerek %70 | Standart TPO/VP yaklaşımı |
