@@ -89,12 +89,29 @@ class TimeframesConfig(_Strict):
     short: tuple[str, ...] = ("15m", "5m")
 
 
+DEFAULT_CONFLUENCE_WEIGHTS = {
+    "htf_trend_alignment": Decimal(25),
+    "zone_proximity": Decimal(20),
+    "structure_confirmation": Decimal(15),
+    "volume_confirmation": Decimal(10),
+    "pattern": Decimal(10),
+    "divergence": Decimal(10),
+    "regime_fit": Decimal(10),
+}
+
+
 class ConfluenceConfig(_Strict):
     min_score: Decimal = Field(default=Decimal(70), ge=0, le=100)
-    weights: dict[str, Decimal] = Field(default_factory=dict)
+    weights: dict[str, Decimal] = Field(default_factory=lambda: dict(DEFAULT_CONFLUENCE_WEIGHTS))
+    # Lower-TF setup against the higher-TF trend: score is multiplied by this (spec §5.3.a).
+    htf_conflict_penalty: Decimal = Field(default=Decimal("0.5"), ge=0, le=1)
+    recent_bars: int = Field(default=5, ge=1)  # patterns/divergences count if this recent
 
     @model_validator(mode="after")
     def _check_weights(self) -> ConfluenceConfig:
+        unknown = set(self.weights) - set(DEFAULT_CONFLUENCE_WEIGHTS)
+        if unknown:
+            raise ValueError(f"Bilinmeyen confluence bileşeni: {sorted(unknown)}")
         if any(w < 0 for w in self.weights.values()):
             raise ValueError("Confluence ağırlıkları negatif olamaz.")
         if self.weights and sum(self.weights.values()) <= 0:
@@ -104,7 +121,8 @@ class ConfluenceConfig(_Strict):
 
 class TradePlanConfig(_Strict):
     min_risk_reward: Decimal = Field(default=Decimal(2), gt=0)
-    sl_atr_buffer: Decimal = Field(default=Decimal("0.5"), ge=0)
+    sl_atr_buffer: Decimal = Field(default=Decimal("0.5"), gt=0)
+    max_stop_atr: Decimal = Field(default=Decimal(4), gt=0)  # farther stops are rejected
     take_profits: tuple[Decimal, ...] = Field(
         default=(Decimal(1), Decimal(2), Decimal(3)), min_length=1, max_length=3
     )
@@ -190,6 +208,8 @@ class AnalysisConfig(_Strict):
     volume_profile: VolumeProfileParams = Field(default_factory=VolumeProfileParams)
     patterns: PatternParams = Field(default_factory=PatternParams)
     divergence: DivergenceParams = Field(default_factory=DivergenceParams)
+    analysis_bars: int = Field(default=500, ge=100)  # bars per timeframe fed to the engine
+    chart_bars: int = Field(default=200, ge=20)
     confluence: ConfluenceConfig = Field(default_factory=ConfluenceConfig)
     trade_plan: TradePlanConfig = Field(default_factory=TradePlanConfig)
     llm_commentary: bool = False
