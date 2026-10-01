@@ -101,6 +101,15 @@ docker compose restart wireguard bot        # tüneli geri getir
 
 ---
 
+### 5. Telegram ve panel
+1. **Telegram:** @BotFather → `/newbot` → token'ı `.env` → `TELEGRAM_BOT_TOKEN=`. Bota bir mesaj atın, sonra
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` ile `chat.id` değerini bulup `TELEGRAM_CHAT_ID=` yazın.
+   Yalnızca bu sohbetten gelen komutlar işlenir: `/durum /pozisyonlar /analiz BTC /durdur /devam /yardim`.
+2. **Panel:** `.env` → `API_AUTH_TOKEN=` (en az 16 karakter; ör. `python -c "import secrets;print(secrets.token_urlsafe(32))"`).
+   Docker'da `config/config.yaml` → `api.host: 0.0.0.0` yapın (port yalnızca `127.0.0.1:8080`'e açılır).
+   Tarayıcı: <http://127.0.0.1:8080> → token ile giriş → büyük kırmızı **KILL SWITCH** butonu, pozisyonlar,
+   equity, strateji aç/kapa, analiz raporları. Paneli internete açmayın (gerekirse SSH tüneli/WireGuard ile erişin).
+
 ## Riskler ve önlemler
 | Risk | Önlem |
 |---|---|

@@ -179,7 +179,7 @@ operations:
   watch_exchange_announcements: true
 
 notify:
-  telegram: { enabled: true, daily_summary_hour: 23 }
+  telegram: { enabled: true, daily_summary_hour: 23 }   # TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID gerekli (UTC saat)
 
 execution:
   enabled: true                  # strateji -> risk -> emir (marketdata.enabled gerekir)
@@ -203,6 +203,6 @@ heartbeat:
   interval_seconds: 60
 
 api:
-  enabled: true
-  host: 127.0.0.1
+  enabled: true                 # API_AUTH_TOKEN (>=16 karakter) yoksa panel başlamaz
+  host: 127.0.0.1               # Docker'da 0.0.0.0 (compose portu yalnızca 127.0.0.1'e yayınlar)
   port: 8080
