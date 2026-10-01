@@ -138,3 +138,23 @@ async def test_live_publish_while_running(now: datetime) -> None:
 def test_maxsize_must_be_positive() -> None:
     with pytest.raises(ValueError):
         EventBus(maxsize=0)
+
+
+async def test_handlers_may_publish_while_draining(now: datetime) -> None:
+    bus = EventBus()
+    alerts: list[str] = []
+
+    async def on_ticker(e: TickerEvent) -> None:
+        await bus.publish(alert("derived"))
+
+    async def on_alert(e: RiskAlert) -> None:
+        alerts.append(e.code)
+
+    bus.subscribe(TickerEvent, on_ticker)
+    bus.subscribe(RiskAlert, on_alert)
+    for _ in range(3):
+        await bus.publish(ticker_event(now))
+    await run_until_drained(bus)
+    assert alerts == ["derived"] * 3
+    with pytest.raises(EventBusClosedError):
+        await bus.publish(ticker_event(now))
