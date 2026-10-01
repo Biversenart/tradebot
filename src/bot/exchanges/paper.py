@@ -452,5 +452,8 @@ class PaperExchange(ExchangeAdapter):
     async def fetch_order(self, order_id: str, symbol: str) -> Order:
         return self._lookup(order_id).to_order(self.name)
 
+    async def fetch_order_by_client_id(self, client_order_id: str, symbol: str) -> Order:
+        return self._lookup(client_order_id).to_order(self.name)
+
     async def server_time_offset(self) -> timedelta:
         return timedelta(0)
