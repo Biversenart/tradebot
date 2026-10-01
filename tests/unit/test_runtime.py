@@ -16,7 +16,7 @@ EXPECTED = "8.8.8.8"
 
 
 def make_testnet_settings(**cfg: Any) -> Settings:
-    config = AppConfig.model_validate({"mode": "testnet", **cfg})
+    config = AppConfig.model_validate({"mode": "testnet", "marketdata": {"enabled": False}, **cfg})
     secrets = Secrets(
         _env_file=None,
         trading_mode=Mode.TESTNET,
@@ -55,7 +55,8 @@ async def finish(stop: asyncio.Event, task: asyncio.Task[None]) -> None:
 
 
 async def test_paper_mode_has_no_gate() -> None:
-    settings = Settings(AppConfig(), Secrets(_env_file=None), Mode.PAPER)
+    cfg = AppConfig.model_validate({"marketdata": {"enabled": False}})
+    settings = Settings(cfg, Secrets(_env_file=None), Mode.PAPER)
     rt = BotRuntime(settings)
     assert rt.ip_guard is None
     assert rt.orders_allowed()
@@ -112,3 +113,21 @@ async def test_heartbeat_stops_when_unhealthy(monkeypatch: pytest.MonkeyPatch) -
     await finish(stop, task)
     assert pings == []
     assert rt.heartbeat.skipped >= 1
+
+
+async def test_feeds_not_started_when_egress_unverified(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = AppConfig.model_validate({"mode": "testnet"})
+    secrets = Secrets(_env_file=None, trading_mode=Mode.TESTNET, egress_expected_ip=EXPECTED)
+    rt = BotRuntime(Settings(config, secrets, Mode.TESTNET), ip_fetcher=fetcher("1.1.1.1"))
+    assert rt.feeds  # built (no network on construction)
+    loaded: list[str] = []
+
+    async def fake_load() -> None:
+        loaded.append("x")
+
+    for feed in rt.feeds:
+        monkeypatch.setattr(feed.adapter, "load_markets", fake_load)
+    stop, task, _ = await start(rt)
+    await asyncio.sleep(0.02)
+    await finish(stop, task)
+    assert loaded == []  # exchange never contacted with an unverified IP
