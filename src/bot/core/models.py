@@ -75,6 +75,30 @@ class MarketPrecision(_Frozen):
     min_notional: Decimal = Field(default=Decimal(0), ge=0)
 
 
+class MarketInfo(_Frozen):
+    """Static trading rules and fees for a symbol on an exchange."""
+
+    exchange: str
+    symbol: str
+    base: str
+    quote: str
+    market_type: str = "spot"
+    precision: MarketPrecision
+    min_amount: Decimal = Field(default=Decimal(0), ge=0)
+    maker_fee: Decimal = Field(default=Decimal("0.001"), ge=0)
+    taker_fee: Decimal = Field(default=Decimal("0.001"), ge=0)
+
+
+class Balance(_Frozen):
+    asset: str
+    free: Decimal = Field(default=Decimal(0), ge=0)
+    used: Decimal = Field(default=Decimal(0), ge=0)
+
+    @property
+    def total(self) -> Decimal:
+        return self.free + self.used
+
+
 # --------------------------------------------------------------------------- market data
 
 
@@ -125,6 +149,18 @@ class Ticker(_Frozen):
     def spread_pct(self) -> Decimal:
         """Spread as a percentage of mid price."""
         return self.spread / self.mid * 100
+
+
+class Trade(_Frozen):
+    """A public trade printed on the exchange tape."""
+
+    exchange: str
+    symbol: str
+    trade_id: str
+    price: Decimal = Field(gt=0)
+    amount: Decimal = Field(gt=0)
+    side: Side | None = None
+    timestamp: AwareDatetime
 
 
 class OrderBookLevel(_Frozen):
@@ -205,6 +241,36 @@ class OrderIntent(_Frozen):
                 raise ValueError("Stop-loss/take-profit giriş fiyatının yanlış tarafında.")
             if above is not None and above <= ref:
                 raise ValueError("Stop-loss/take-profit giriş fiyatının yanlış tarafında.")
+        return self
+
+
+class OrderRequest(_Frozen):
+    """A concrete, risk-approved order handed to an ExchangeAdapter.
+
+    Built by the execution engine only after RiskManager approval (CLAUDE.md rule 4).
+    Strategies produce `OrderIntent`, never `OrderRequest`.
+    """
+
+    client_order_id: str = Field(min_length=1, max_length=36, pattern=r"^[A-Za-z0-9_\-.:/]+$")
+    exchange: str
+    symbol: str
+    side: Side
+    order_type: OrderType
+    amount: Decimal = Field(gt=0)
+    price: Decimal | None = Field(default=None, gt=0)
+    stop_price: Decimal | None = Field(default=None, gt=0)
+    reduce_only: bool = False
+    intent_id: str | None = None
+
+    @model_validator(mode="after")
+    def _check_prices(self) -> OrderRequest:
+        if self.order_type in (OrderType.LIMIT, OrderType.STOP_LIMIT) and self.price is None:
+            raise ValueError("Limit emirlerinde price zorunludur.")
+        if (
+            self.order_type in (OrderType.STOP_MARKET, OrderType.STOP_LIMIT)
+            and self.stop_price is None
+        ):
+            raise ValueError("Stop emirlerinde stop_price zorunludur.")
         return self
 
 
