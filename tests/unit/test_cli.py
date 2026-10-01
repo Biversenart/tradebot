@@ -135,3 +135,93 @@ def test_analyze_without_data(tmp_path: Path) -> None:
     )
     assert result.exit_code == 1
     assert "veri yok" in result.output
+
+
+def _bt_setup(tmp_path: Path) -> tuple[Path, Path]:
+    from bot.marketdata.history import parquet_path
+    from tests.fixtures.loader import synthetic_1h
+
+    p = parquet_path(tmp_path / "data", "binance", "BTC/USDT", "1h")
+    p.parent.mkdir(parents=True)
+    synthetic_1h().to_parquet(p)
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text(
+        "marketdata: {enabled: false}\n"
+        "backtest: {walk_forward: {train_bars: 400, test_bars: 200, min_trades: 1},"
+        " param_grids: {breakout: {donchian: [20, 40]}}}\n",
+        encoding="utf-8",
+    )
+    return tmp_path / "data", cfg
+
+
+def test_backtest_run_cli(tmp_path: Path) -> None:
+    data, cfg = _bt_setup(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "backtest",
+            "run",
+            "-s",
+            "BTC/USDT",
+            "--strategy",
+            "breakout",
+            "--data",
+            str(data),
+            "-c",
+            str(cfg),
+            "--env-file",
+            str(tmp_path / "none.env"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "profit_factor" in result.stdout and "örneklem içidir" in result.stdout
+
+
+def test_backtest_report_cli(tmp_path: Path) -> None:
+    data, cfg = _bt_setup(tmp_path)
+    out = tmp_path / "rep"
+    result = runner.invoke(
+        app,
+        [
+            "backtest",
+            "report",
+            "-s",
+            "BTC/USDT",
+            "--strategy",
+            "breakout",
+            "--since",
+            "2024-01-01",
+            "--data",
+            str(data),
+            "--out",
+            str(out),
+            "-c",
+            str(cfg),
+            "--env-file",
+            str(tmp_path / "none.env"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (out / "OZET.md").exists() and (out / "BTC-USDT_breakout.html").exists()
+    assert "Spec §9" in (out / "OZET.md").read_text("utf-8")
+
+
+def test_backtest_missing_data_cli(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "backtest",
+            "run",
+            "-s",
+            "DOGE/USDT",
+            "--strategy",
+            "breakout",
+            "--data",
+            str(tmp_path),
+            "--env-file",
+            str(tmp_path / "x"),
+            "-c",
+            str(tmp_path / "none.yaml"),
+        ],
+    )
+    assert result.exit_code == 1 and "bot data download" in result.output
