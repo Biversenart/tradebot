@@ -7,6 +7,7 @@ import contextlib
 from datetime import timedelta
 
 from bot import __version__
+from bot.arbitrage.service import arbitrage_symbols
 from bot.config import Mode, Settings
 from bot.core.event_bus import EventBus
 from bot.core.events import AlertLevel, RiskAlert
@@ -57,12 +58,17 @@ class BotRuntime:
         md = cfg.marketdata
         if md.enabled and settings.mode is not Mode.BACKTEST:
             self.exchanges = build_exchanges(settings, self.egress)
-            for adapter in self.exchanges.values():
+            for name, adapter in self.exchanges.items():
+                symbols = list(
+                    dict.fromkeys(
+                        [*cfg.universe.symbols, *sorted(arbitrage_symbols(cfg.arbitrage, name))]
+                    )
+                )
                 self.feeds.append(
                     MarketDataFeed(
                         adapter,
                         self.bus,
-                        cfg.universe.symbols,
+                        symbols,
                         md.candle_timeframes,
                         depth=md.order_book_depth,
                     )

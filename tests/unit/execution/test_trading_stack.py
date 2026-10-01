@@ -90,3 +90,22 @@ async def test_stack_reconciles_warms_up_and_trades(tmp_path: Path) -> None:
     await bus.stop()
     await bus_task
     await stack.close()
+
+
+async def test_arbitrage_wiring_paper_executes_testnet_logs_only(tmp_path: Path) -> None:
+    exchanges = {n: PaperExchange(n, initial_balances={"USDT": D(100)}) for n in ("a", "b")}
+    cfg = AppConfig.model_validate(
+        {
+            "arbitrage": {"cross_exchange": {"enabled": True, "pairs": ["BTC/USDT"]}},
+        }
+    )
+    for mode, has_exec in ((Mode.PAPER, True), (Mode.TESTNET, False)):
+        secrets = Secrets(
+            _env_file=None, database_url=SecretStr(f"sqlite+aiosqlite:///{tmp_path / f'{mode}.db'}")
+        )
+        stack = await TradingStack.build(
+            Settings(cfg, secrets, mode), EventBus(), exchanges, {}, lambda: True
+        )
+        assert stack.arbitrage is not None
+        assert (stack.arbitrage.executor is not None) is has_exec
+        await stack.close()
