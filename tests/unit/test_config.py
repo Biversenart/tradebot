@@ -185,7 +185,7 @@ def test_expected_ip_must_be_public(ip: str) -> None:
 def test_proxy_mode_requires_proxy_url() -> None:
     s = secrets(trading_mode="testnet", egress_expected_ip=GLOBAL_IP)
     with pytest.raises(ConfigError, match="EGRESS_PROXY_URL"):
-        resolve_trading_mode(s, config(mode="testnet"))
+        resolve_trading_mode(s, config(mode="testnet", egress={"mode": "proxy"}))
 
 
 @pytest.mark.parametrize("egress_mode", [EgressMode.DIRECT_VPS, EgressMode.WIREGUARD])
@@ -214,6 +214,13 @@ def test_real_api_mode_requires_enabled_exchange() -> None:
 
 
 # --------------------------------------------------------------------- secrets / env file
+
+
+def test_heartbeat_requires_url() -> None:
+    with pytest.raises(ConfigError, match="HEARTBEAT_URL"):
+        resolve_trading_mode(secrets(), config(heartbeat={"enabled": True}))
+    s = secrets(heartbeat_url=SecretStr("https://hc-ping.com/abc"))
+    assert resolve_trading_mode(s, config(heartbeat={"enabled": True})) is Mode.PAPER
 
 
 def test_load_settings_from_env_file(tmp_path: Path) -> None:
