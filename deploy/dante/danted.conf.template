@@ -1,0 +1,32 @@
+# Dante SOCKS5 proxy şablonu (Seçenek B: egress.mode=proxy).
+# Proxy YALNIZCA WireGuard tünel adresinde dinler; internete açık değildir. Böylece SOCKS
+# kullanıcı adı/parolası şifreli tünel içinde kalır.
+# Bot tarafı:  EGRESS_PROXY_URL=socks5h://__PROXY_USER__:<parola>@__SERVER_TUNNEL_IP__:1080
+logoutput: syslog
+internal: __SERVER_TUNNEL_IP__ port = 1080
+external: __WAN_IF__
+
+socksmethod: username
+user.privileged: root
+user.unprivileged: nobody
+
+client pass {
+    from: __TUNNEL_SUBNET__ to: 0.0.0.0/0
+    log: error
+}
+client block {
+    from: 0.0.0.0/0 to: 0.0.0.0/0
+    log: connect error
+}
+
+socks pass {
+    from: __TUNNEL_SUBNET__ to: 0.0.0.0/0
+    command: connect
+    protocol: tcp
+    socksmethod: username
+    log: error
+}
+socks block {
+    from: 0.0.0.0/0 to: 0.0.0.0/0
+    log: connect error
+}

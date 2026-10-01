@@ -1,19 +1,55 @@
-# Aşama 0: bot + postgres.
-# UYARI: testnet/live için borsa trafiği sabit IP'li egress üzerinden çıkmalıdır
-# (CLAUDE.md kural 8). WireGuard istemci servisi ve `network_mode: service:wireguard`
-# Aşama 1'de eklenecek; o zamana kadar bu dosyayı yalnızca paper modda kullanın.
+# Bot + WireGuard (sabit çıkış IP) + Postgres.
+#
+# Bot konteyneri KENDİ ağına sahip değildir: `network_mode: service:wireguard` ile WireGuard
+# konteynerinin ağ ad alanını kullanır. Oradaki kill-switch (deploy/local/killswitch.sh)
+# internete çıkışı yalnızca wg0 tüneline izin verir; tünel düşerse bot internete ÇIKAMAZ.
+# Kurulum: deploy/LOKAL_KURULUM.md
 services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Etc/UTC
+      KILLSWITCH_LOCAL_NET: 172.28.0.0/24
+    volumes:
+      - ./deploy/local/wg_confs:/config/wg_confs
+      - ./deploy/local/killswitch.sh:/custom-cont-init.d/10-killswitch.sh:ro
+      - ./deploy/local/wg_healthcheck.sh:/usr/local/bin/wg_healthcheck.sh:ro
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: "1"
+      net.ipv6.conf.all.disable_ipv6: "1"
+    # Bot'un portları burada yayınlanır (bot bu ağ ad alanını paylaşır). Yalnızca localhost.
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      botnet:
+        ipv4_address: 172.28.0.2
+    healthcheck:
+      test: ["CMD", "sh", "/usr/local/bin/wg_healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   bot:
     build: .
     image: tradebot:latest
     restart: always
+    network_mode: service:wireguard
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://bot:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env içinde tanımlı olmalı}@postgres:5432/bot
+      # Postgres'e sabit IP ile bağlanılır (DNS tünelden gider; compose adı çözülmez).
+      DATABASE_URL: postgresql+asyncpg://bot:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env içinde tanımlı olmalı}@172.28.0.10:5432/bot
     volumes:
       - ./config:/app/config:ro
       - ./data:/app/data
     depends_on:
+      wireguard:
+        condition: service_healthy
       postgres:
         condition: service_healthy
 
@@ -27,11 +63,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     # Port dışarı açılmaz; yalnızca compose ağı içinden erişilir.
+    networks:
+      botnet:
+        ipv4_address: 172.28.0.10
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bot -d bot"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+networks:
+  botnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   pgdata:
