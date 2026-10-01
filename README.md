@@ -62,4 +62,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 3 — Analiz motoru: göstergeler, rejim, yapı (BOS/CHoCH), bölgeler, hacim profili, uyumsuzluk, formasyonlar, confluence, TradePlan, `bot analyze`
 - ✅ Aşama 4 — 5 strateji + sinyal birleştirici (canlı/backtest aynı sınıflar), olay güdümlü backtest, metrikler, walk-forward + parametre taraması, HTML rapor, çıkış yönetimi
 - ✅ Aşama 5 — RiskManager (ApprovedIntent), büyüme odaklı boyutlama, kill switch, portföy riski; emir yürütme (borsa tarafı zorunlu stop, idempotent id, kısmi dolum), reconciliation, SQLAlchemy + alembic, `bot run` ile uçtan uca paper/testnet akışı
-- ⏭️ Sıradaki: Aşama 6 — Arbitraj
+- ✅ Aşama 6 — Arbitraj: cross-exchange (derinlik, ücret, kayma, gecikme, TRY köprüsü) ve üçgen tarayıcılar, leg-risk hedge'li paper yürütme, rebalans uyarıları; fırsatlar DB'ye loglanır
+- ⏭️ Sıradaki: Aşama 7 — Telegram ve panel
