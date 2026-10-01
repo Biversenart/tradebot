@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
@@ -64,3 +65,17 @@ class RiskAlert(Event):
     code: str
     message: str
     details: dict[str, Any] = Field(default_factory=dict)
+
+
+class PositionEvent(Event):
+    """Position lifecycle notification (Telegram / panel)."""
+
+    kind: str  # opened | reduced | closed
+    position_id: str
+    exchange: str
+    symbol: str
+    side: str
+    amount: Decimal
+    price: Decimal | None = None
+    realized_pnl: Decimal = Decimal(0)
+    reason: str = ""

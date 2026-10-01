@@ -25,6 +25,9 @@ dependencies = [
     "aiosqlite>=0.20",
     "asyncpg>=0.29",
     "alembic>=1.13",
+    "fastapi>=0.110",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +38,7 @@ dev = [
     "mypy>=1.10",
     "types-PyYAML>=6.0",
     "pandas-stubs>=2.2",
+    "httpx>=0.27",
 ]
 
 [project.scripts]
@@ -56,6 +60,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S104", "S105", "S106", "S603", "N817"]
 "src/bot/backtest/report.py" = ["E501"]  # HTML/Markdown şablon satırları
+"src/bot/api/app.py" = ["E501"]  # HTML/JS şablonları
 
 [tool.mypy]
 python_version = "3.12"
