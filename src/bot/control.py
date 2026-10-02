@@ -11,6 +11,10 @@ from typing import Any
 from bot import __version__
 from bot.analysis.service import AnalysisOutput
 from bot.config import Settings
+from bot.ops.capital import CapitalCapError
+from bot.ops.config_log import ConfigChangeLog
+from bot.ops.service import OpsService
+from bot.ops.shadow import ShadowBook, ShadowRegistry
 from bot.risk.kill_switch import KillReason, KillSwitch
 from bot.storage.repository import Repository
 from bot.strategies.base import BaseStrategy
@@ -58,6 +62,10 @@ class BotControl:
         analyze: AnalyzeFn | None = None,
         reports_dir: Path = Path("reports/analysis"),
         persist: Callable[[], Awaitable[None]] | None = None,
+        config_log: ConfigChangeLog | None = None,
+        ops: OpsService | None = None,
+        shadow: tuple[ShadowRegistry, ShadowBook] | None = None,
+        persist_ops: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         self.settings = settings
         self.repo = repo
@@ -69,7 +77,18 @@ class BotControl:
         self._analyze = analyze
         self.reports_dir = reports_dir
         self._persist = persist
+        self.config_log = config_log
+        self.ops = ops
+        self.shadow = shadow
+        self._persist_ops = persist_ops
         self.disabled: set[str] = set()
+
+    async def _log_change(self, path: str, old: object, new: object, operator: str) -> None:
+        if self.config_log is None:
+            return
+        low = operator.lower()
+        source = "panel" if low.startswith("panel") else "telegram" if "telegram" in low else "cli"
+        await self.config_log.record(path, old, new, source, operator)
 
     # ---------------------------------------------------------------- queries
     async def status(self) -> StatusSnapshot:
@@ -152,6 +171,7 @@ class BotControl:
     # ---------------------------------------------------------------- actions
     async def stop(self, operator: str) -> str:
         await self.kill_switch.trigger(KillReason.MANUAL, f"{operator} tarafından durduruldu.")
+        await self._log_change("runtime.kill_switch", False, True, operator)
         if self._persist:
             await self._persist()
         close = self.kill_switch.close_positions_requested
@@ -161,6 +181,8 @@ class BotControl:
 
     async def resume(self, operator: str) -> str:
         cleared = await self.kill_switch.resume(operator)
+        if cleared:
+            await self._log_change("runtime.kill_switch", True, False, operator)
         if self._persist:
             await self._persist()
         remaining = [r.value for r in self.kill_switch.active_reasons]
@@ -171,10 +193,13 @@ class BotControl:
             )
         return "Bot devam ediyor." if cleared else "Kill switch zaten aktif değildi."
 
-    def set_strategy_enabled(self, key: str, enabled: bool) -> bool:
+    async def set_strategy_enabled(self, key: str, enabled: bool, operator: str = "cli") -> bool:
         keys = {f"{s.name}:{s.symbol}" for s in self.strategies}
         if key not in keys:
             return False
+        before = key not in self.disabled
+        if before != enabled:
+            await self._log_change(f"runtime.strategies.{key}.enabled", before, enabled, operator)
         if enabled:
             self.disabled.discard(key)
         else:
@@ -183,6 +208,63 @@ class BotControl:
 
     def strategy_allowed(self, strategy: BaseStrategy) -> bool:
         return f"{strategy.name}:{strategy.symbol}" not in self.disabled
+
+    # ---------------------------------------------------------------- ops (spec §5.13)
+    async def config_changes(self, limit: int = 50) -> list[dict[str, Any]]:
+        return await self.config_log.recent(limit) if self.config_log else []
+
+    def ops_status(self) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        if self.ops is not None:
+            o = self.ops
+            out["capital_cap"] = o.capital.summary_tr()
+            out["depeg"] = o.depeg.block_reason() or "normal"
+            out["clock_offsets_ms"] = {k: round(v) for k, v in o.clock_skew.offsets.items()}
+            out["clock_blocked"] = sorted(o.clock_skew.skewed)
+            if o.announcements is not None:
+                out["delisted"] = {
+                    ex: sorted(o.announcements.delisted_assets(ex)) for ex in o.adapters
+                }
+        if self.shadow is not None:
+            _, book = self.shadow
+            n = self.settings.config.operations.shadow_min_trades
+            out["shadow"] = [book.compare_tr(name, n) for name in sorted(self.shadow_names())]
+        return out
+
+    def shadow_names(self) -> set[str]:
+        """Strategies with virtual trades in the shadow book (live and/or shadow version)."""
+        if self.shadow is None:
+            return set()
+        _, book = self.shadow
+        return {t.strategy for t in book.closed} | {k[1] for k in book.open}
+
+    async def raise_capital_cap(self, pct: Decimal, operator: str) -> str:
+        if self.ops is None:
+            return "Ops servisi yok."
+        old = self.ops.capital.state.cap_pct
+        try:
+            msg = self.ops.capital.set_cap(pct, operator)
+        except CapitalCapError as exc:
+            return f"Reddedildi: {exc}"
+        await self._log_change("operations.live_capital_cap_pct", str(old), str(pct), operator)
+        if self._persist_ops:
+            await self._persist_ops()
+        return msg
+
+    async def approve_shadow(self, name: str, operator: str) -> str:
+        if self.shadow is None:
+            return "Gölge mod kayıt defteri yok."
+        registry, _ = self.shadow
+        try:
+            msg = registry.approve(
+                name, self.settings.config, operator, self.kill_switch.clock.now()
+            )
+        except KeyError:
+            return f"Strateji bulunamadı: {name}"
+        await self._log_change(f"shadow.approved.{name}", None, "approved", operator)
+        if self._persist_ops:
+            await self._persist_ops()
+        return msg
 
     async def analyze(self, symbol: str) -> AnalysisOutput:
         if self._analyze is None:

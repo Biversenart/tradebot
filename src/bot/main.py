@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import signal
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Annotated
 
@@ -27,6 +28,8 @@ from bot.log import configure_logging
 from bot.marketdata.history import download_to_parquet, parquet_path, utc_date
 from bot.marketdata.synthetic import generate_ohlcv
 from bot.net.egress import resolve_egress
+from bot.ops import commands as ops_commands
+from bot.ops.capital import CapitalCapError
 from bot.runtime import BotRuntime
 from bot.strategies.registry import STRATEGIES, build_strategy
 
@@ -35,6 +38,10 @@ data_app = typer.Typer(help="Geçmiş veri komutları", no_args_is_help=True)
 app.add_typer(data_app, name="data")
 bt_app = typer.Typer(help="Backtest komutları", no_args_is_help=True)
 app.add_typer(bt_app, name="backtest")
+capital_app = typer.Typer(help="Kanarya sermaye tavanı (live)", no_args_is_help=True)
+app.add_typer(capital_app, name="capital")
+shadow_app = typer.Typer(help="Gölge mod (parametre değişiklikleri)", no_args_is_help=True)
+app.add_typer(shadow_app, name="shadow")
 
 ConfigOption = Annotated[Path, typer.Option("--config", "-c", help="YAML config dosyası")]
 EnvOption = Annotated[Path, typer.Option("--env-file", help=".env dosyası")]
@@ -272,7 +279,12 @@ def backtest_walkforward(
     settings = _load_or_exit(config, env_file)
     frames = _bt_frames([symbol], tf, exchange, data, since, until)
     summary, htmls, _results = run_report(
-        settings.config, frames, [strategy], out or default_out_dir(), "Yerel Parquet verisi."
+        settings.config,
+        frames,
+        [strategy],
+        out or default_out_dir(),
+        "Yerel Parquet verisi.",
+        timeframe=tf,
     )
     typer.echo(summary.read_text(encoding="utf-8"))
     typer.echo(f"HTML: {htmls[0]}")
@@ -308,6 +320,7 @@ def backtest_report(
         names,
         out or default_out_dir(),
         f"Veri: {exchange} {tf} ({span}).",
+        timeframe=tf,
     )
     typer.echo(summary.read_text(encoding="utf-8"))
     typer.echo(f"Özet: {summary}\nHTML raporlar: {summary.parent}")
@@ -359,6 +372,71 @@ def backtest_sizing(
     path.write_text(md, encoding="utf-8")
     typer.echo(md)
     typer.echo(f"Rapor: {path}")
+
+
+OperatorOpt = Annotated[str, typer.Option("--by", help="Onaylayan kişi")]
+_OFFLINE_NOTE = (
+    "Not: bot çalışıyorsa panel/Telegram kullanın (çalışan bot bu durumu üzerine yazar)."
+)
+
+
+@capital_app.command("show")
+def capital_show(config: ConfigOption = DEFAULT_CONFIG, env_file: EnvOption = DEFAULT_ENV) -> None:
+    """Geçerli live sermaye tavanı ve geçmişi."""
+    settings = _load_or_exit(config, env_file)
+    typer.echo(asyncio.run(ops_commands.capital_show(settings)))
+
+
+@capital_app.command("raise")
+def capital_raise(
+    pct: Annotated[str, typer.Argument(help="Yeni tavan yüzdesi (ör. 20)")],
+    by: OperatorOpt = "cli",
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Tavanı manuel onayla değiştir (kanarya süresi ve kademeli artış kuralı uygulanır)."""
+    settings = _load_or_exit(config, env_file)
+    try:
+        typer.echo(asyncio.run(ops_commands.capital_raise(settings, Decimal(pct), by)))
+    except (CapitalCapError, InvalidOperation) as exc:
+        typer.secho(f"Reddedildi: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(_OFFLINE_NOTE)
+
+
+@shadow_app.command("report")
+def shadow_report(config: ConfigOption = DEFAULT_CONFIG, env_file: EnvOption = DEFAULT_ENV) -> None:
+    """Strateji parametrelerinin onay durumu ve gölge/canlı karşılaştırması."""
+    settings = _load_or_exit(config, env_file)
+    typer.echo(asyncio.run(ops_commands.shadow_report(settings)))
+
+
+@shadow_app.command("approve")
+def shadow_approve(
+    name: Annotated[str, typer.Argument(help="Strateji adı (config anahtarı)")],
+    by: OperatorOpt = "cli",
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Gölgedeki parametreleri onayla; bir sonraki başlatmada canlıda çalışır."""
+    settings = _load_or_exit(config, env_file)
+    try:
+        typer.echo(asyncio.run(ops_commands.shadow_approve(settings, name, by)))
+    except KeyError as exc:
+        typer.secho(f"Strateji bulunamadı: {name}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(_OFFLINE_NOTE)
+
+
+@app.command("config-log")
+def config_log(
+    limit: Annotated[int, typer.Option("--limit", "-n")] = 50,
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Config değişiklik günlüğü (dosya, panel, Telegram, CLI)."""
+    settings = _load_or_exit(config, env_file)
+    typer.echo(asyncio.run(ops_commands.config_log(settings, limit)))
 
 
 async def run_bot(settings: Settings, stop: asyncio.Event) -> None:
