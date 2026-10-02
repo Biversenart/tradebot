@@ -115,6 +115,9 @@ backtest:
   commission_pct: 0.1            # taraf başı (taker)
   slippage_bps: 5
   latency_bars: 1                # sinyal kapanışta -> dolum sonraki mumun açılışında (>=1)
+  min_commission_pct: 0.075      # önyargı kontrolü: bunun altı "gerçekçi değil" sayılır
+  min_slippage_bps: 2
+  delisted_symbols: []           # survivorship: ör. ["LUNA/USDT", "FTT/USDT"] (+ verisi indirilmiş)
   allow_short: true
   trailing_atr_mult: 2.0
   structure_trail_bars: 10
@@ -170,13 +173,31 @@ risk:
     profit_lock: { enabled: true, every_gain_pct: 20, lock_pct: 25 }
     auto_allocation: { enabled: true, lookback_trades: 30, pause_if_expectancy_below: 0 }
 
-operations:
-  live_capital_cap_pct: 10
-  shadow_mode: true
+operations:                     # spec §5.13 operasyonel güvenlik ağları
+  live_capital_cap_pct: 10        # kanarya: live boyutlama bakiyenin en fazla %10'unu görür
+  canary_days: 14                 # tavan artışı en erken bu kadar gün sonra (manuel onayla)
+  max_cap_step_factor: 2          # tek seferde en fazla x2 artış (bot capital raise / panel)
+  shadow_mode: true               # testnet/live: değişen strateji parametreleri önce gölgede
+  shadow_min_trades: 20           # karşılaştırma raporunda "yeterli veri" eşiği
   stablecoin_depeg_threshold_pct: 0.5
-  max_balance_per_exchange_usdt: 5000
-  low_liquidity_mode: { enabled: true, weekend_risk_factor: 0.5 }
+  stablecoin_pairs: ["USDC/USDT", "FDUSD/USDT"]
+  max_balance_per_exchange_usdt: 5000   # aşılınca rebalans uyarısı (transfer manuel)
+  balance_alert_repeat_hours: 6
+  low_liquidity_mode:
+    enabled: true
+    weekend_risk_factor: 0.5      # Cmt/Paz (UTC) risk x0.5
+    holidays: []                  # ör. [2026-12-25, 2027-01-01]
+    holiday_risk_factor: 0.5
+    min_depth_quote: 0            # >0: orderbook ±%0.5 derinliği bunun altındaysa ince sayılır
+    thin_book_risk_factor: 0.5
+    action: reduce                # reduce | halt (halt: düşük likiditede yeni işlem yok)
   watch_exchange_announcements: true
+  announcement_check_minutes: 15
+  announcements_file: config/announcements.yaml   # manuel duyurular (örnek: announcements.example.yaml)
+  on_delisting: close             # close | keep — delist edilen paritedeki açık pozisyon
+  maintenance_block_before_minutes: 60
+  max_clock_skew_ms: 1000         # borsa saatinden sapma > 1 sn: o borsada yeni emir yok
+  check_interval_seconds: 60
 
 notify:
   telegram: { enabled: true, daily_summary_hour: 23 }   # TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID gerekli (UTC saat)

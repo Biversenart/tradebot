@@ -161,3 +161,38 @@ async def test_runtime_starts_panel_and_skips_telegram_without_secrets(tmp_path:
     await asyncio.wait_for(asyncio.gather(*tasks), 5)
     await rt.trading.close()
     await rt.http.close()
+
+
+async def test_shadow_mode_wiring_and_config_log(tmp_path: Path) -> None:
+    db = SecretStr(f"sqlite+aiosqlite:///{tmp_path / 'shadow.db'}")
+    ex = PaperExchange("paper", initial_balances={"USDT": D(100)})
+
+    def settings(slow: int) -> Settings:
+        cfg = AppConfig.model_validate(
+            {
+                "universe": {"symbols": ["BTC/USDT"]},
+                "strategies": {"ema_crossover": {"enabled": True, "fast": 9, "slow": slow}},
+                "execution": {"reconcile_on_start": False},
+                "marketdata": {"warmup_bars": 0},
+            }
+        )
+        return Settings(cfg, Secrets(_env_file=None, database_url=db), Mode.TESTNET)
+
+    async def boot(s: Settings) -> TradingStack:
+        stack = await TradingStack.build(s, EventBus(), {"paper": ex}, {}, lambda: True)
+        await stack.start_ops(s)
+        return stack
+
+    first = await boot(settings(21))
+    assert first.shadow_runner is None  # baseline approved on first testnet start
+    assert first.strategies[0].params.slow == 21  # type: ignore[attr-defined]
+    await first.close()
+
+    second = await boot(settings(34))
+    assert second.shadow_runner is not None
+    assert second.strategies[0].params.slow == 21  # type: ignore[attr-defined]  # approved
+    assert second.shadow_strategies[0].params.slow == 34  # type: ignore[attr-defined]
+    assert second.config_log is not None
+    paths = [r["path"] for r in await second.config_log.recent()]
+    assert "strategies.ema_crossover.slow" in paths
+    await second.close()

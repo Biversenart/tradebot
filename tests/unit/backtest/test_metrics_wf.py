@@ -7,8 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from bot.backtest.bias import bias_checks
 from bot.backtest.metrics import Metrics, Thresholds, max_drawdown_pct, metrics_from, profit_factor
-from bot.backtest.report import bias_checks, render_html, summary_markdown
+from bot.backtest.report import render_html, summary_markdown
 from bot.backtest.runner import NoDataError, load_history, lookahead_check
 from bot.backtest.walkforward import objective_value, param_combinations, walk_forward
 from bot.config.schema import AppConfig

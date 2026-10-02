@@ -151,3 +151,12 @@ async def test_long_messages_truncated(bot: tuple[TelegramBot, FakeHttp, EventBu
 
 def test_token_never_in_repr() -> None:
     assert "ABCDEF" not in repr(TelegramApi(TOKEN, FakeHttp()).__dict__)
+
+
+async def test_security_command(bot: tuple[TelegramBot, FakeHttp, EventBus]) -> None:
+    b, _, _ = bot
+    reply = await b.handle("/guvenlik", b.chat_id)
+    assert reply is not None and "depeg: normal" in reply and "capital_cap" in reply
+    await b.handle("/durdur", b.chat_id)
+    rows = await b.control.config_changes()
+    assert rows[0]["source"] == "telegram"

@@ -35,6 +35,7 @@ HELP = (
     "/analiz <coin> — ör. /analiz BTC (MTF teknik analiz özeti)\n"
     "/durdur — kill switch: yeni emirleri durdur (config'e göre pozisyonları kapat)\n"
     "/devam — kill switch'i kaldır (günlük zarar ve IP blokları otomatik kalkar)\n"
+    "/guvenlik — operasyonel güvenlik durumu (tavan, depeg, saat, delisting, gölge mod)\n"
     "/yardim — bu mesaj"
 )
 
@@ -173,6 +174,17 @@ class TelegramBot:
             return await self.control.stop("Telegram")
         if cmd == "/devam":
             return await self.control.resume("Telegram")
+        if cmd == "/guvenlik":
+            ops = self.control.ops_status()
+            if not ops:
+                return "Operasyonel güvenlik bilgisi yok."
+            lines = []
+            for k, v in ops.items():
+                if isinstance(v, list):
+                    lines += [f"{k}:"] + [f"  • {x}" for x in v]
+                else:
+                    lines.append(f"{k}: {v}")
+            return "\n".join(lines)
         return "Bilinmeyen komut. /yardim"
 
     async def poll(self, stop: asyncio.Event, timeout: int = 25) -> None:
