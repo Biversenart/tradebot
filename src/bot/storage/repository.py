@@ -16,6 +16,7 @@ from bot.storage.db import create_all, make_engine, session_factory
 from bot.storage.models import (
     ArbitrageOpportunityRow,
     BalanceSnapshotRow,
+    ConfigChangeRow,
     EquityPointRow,
     OrderRow,
     PositionRow,
@@ -198,6 +199,21 @@ class Repository:
     async def recent_risk_events(self, limit: int = 50) -> list[RiskEventRow]:
         async with self._sessions() as s:
             q = select(RiskEventRow).order_by(RiskEventRow.timestamp.desc()).limit(limit)
+            return list((await s.execute(q)).scalars())
+
+    async def save_config_changes(self, rows: list[ConfigChangeRow]) -> None:
+        if not rows:
+            return
+        async with self._sessions.begin() as s:
+            s.add_all(rows)
+
+    async def config_changes(self, limit: int = 100) -> list[ConfigChangeRow]:
+        async with self._sessions() as s:
+            q = (
+                select(ConfigChangeRow)
+                .order_by(ConfigChangeRow.timestamp.desc(), ConfigChangeRow.id.desc())
+                .limit(limit)
+            )
             return list((await s.execute(q)).scalars())
 
     async def save_equity(
