@@ -1,0 +1,10 @@
+{"code":"000000","message":null,"data":{"catalogs":[
+ {"catalogId":161,"catalogName":"Delisting","articles":[
+  {"id":201,"code":"a1","title":"Binance Will Delist ANT, MULTI, VAI and XMR on 2024-02-20","releaseDate":1707300000000},
+  {"id":202,"code":"a2","title":"Notice of Removal of Spot Trading Pairs - 2024-02-16","releaseDate":1707800000000}
+ ]},
+ {"catalogId":157,"catalogName":"Maintenance Updates","articles":[
+  {"id":301,"code":"b1","title":"Binance Will Suspend Deposits and Withdrawals on the Solana Network (SOL) During the Network Upgrade","releaseDate":1707400000000},
+  {"id":302,"code":"b2","title":"Binance Will Perform Scheduled System Maintenance","releaseDate":1707500000000}
+ ]}
+]},"success":true}
