@@ -63,6 +63,7 @@ class FakeAdapter(ExchangeAdapter):
         self.trades: list[Trade] = []
         self.closed = False
         self.loaded = False
+        self.time_offset = timedelta(0)
 
     async def load_markets(self) -> None:
         self.loaded = True
@@ -137,4 +138,4 @@ class FakeAdapter(ExchangeAdapter):
         raise NotSupportedError("fake")
 
     async def server_time_offset(self) -> timedelta:
-        return timedelta(0)
+        return self.time_offset
