@@ -72,7 +72,7 @@ class BotRuntime:
             for name, adapter in self.exchanges.items():
                 symbols = list(
                     dict.fromkeys(
-                        [*cfg.universe.symbols, *sorted(arbitrage_symbols(cfg.arbitrage, name))]
+                        [*cfg.symbols_for(name), *sorted(arbitrage_symbols(cfg.arbitrage, name))]
                     )
                 )
                 self.feeds.append(
@@ -149,6 +149,20 @@ class BotRuntime:
                     )
                 )
                 continue
+            missing = feed.restrict_to_listed()
+            if missing:
+                _log.warning(
+                    "symbols_not_listed",
+                    exchange=feed.adapter.name,
+                    symbols=missing,
+                    hint="config.yaml: exchanges.<borsa>.symbols ile uygun pariteleri verin",
+                )
+            if not feed.adapter.supports_exchange_stop:
+                _log.warning(
+                    "exchange_without_stop_orders",
+                    exchange=feed.adapter.name,
+                    note="borsada stop emri yok: yalnızca veri/arbitraj, strateji yok",
+                )
             self._ready_feeds.append(feed)
         cfg = self.settings.config
         if cfg.execution.enabled and self._ready_feeds and self.settings.mode is not Mode.BACKTEST:

@@ -40,6 +40,14 @@ _log = get_logger(__name__)
 INITIAL_EQUITY_KEY = "initial_equity"
 
 
+def _listed(adapter: ExchangeAdapter, symbols: tuple[str, ...]) -> list[str]:
+    try:
+        listed = set(adapter.symbols())
+    except Exception:  # markets not loaded / adapter without a list
+        return list(symbols)
+    return [s for s in symbols if not listed or s in listed]
+
+
 @dataclass
 class TradingStack:
     repo: Repository
@@ -100,10 +108,12 @@ class TradingStack:
         plan = registry.plan(cfg, settings.mode, kill.clock.now())
         await repo.set_state(shadow_mod.STATE_KEY, registry.to_dict())
         live_cfg = plan.live_config
+        # rule 9: no strategies on exchanges that cannot hold a stop order
+        tradable = {n: ad for n, ad in exchanges.items() if ad.supports_exchange_stop}
         strategies = [
             s
-            for name in exchanges
-            for sym in cfg.universe.symbols
+            for name, ad in tradable.items()
+            for sym in _listed(ad, cfg.symbols_for(name))
             for s in build_enabled(live_cfg, sym, name)
         ]
         runner = StrategyRunner(bus, strategies) if strategies else None
@@ -111,8 +121,8 @@ class TradingStack:
         shadow_strats = (
             [
                 s
-                for name in exchanges
-                for sym in cfg.universe.symbols
+                for name, ad in tradable.items()
+                for sym in _listed(ad, cfg.symbols_for(name))
                 for s in build_enabled(shadow_cfg, sym, name)
             ]
             if plan.shadow_strategies

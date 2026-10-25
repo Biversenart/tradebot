@@ -61,6 +61,9 @@ class ExchangeConfig(_Strict):
     enabled: bool = False
     market_type: Literal["spot", "futures"] = "spot"
     testnet: bool = True
+    # optional per-exchange symbol list (e.g. ["BTC/USD"] on Kraken, ["BTC/KRW"] on Upbit);
+    # empty -> universe.symbols. Symbols the exchange does not list are skipped at start-up.
+    symbols: tuple[str, ...] = ()
 
 
 class ScannerConfig(_Strict):
@@ -489,3 +492,7 @@ class AppConfig(_Strict):
     @property
     def enabled_exchanges(self) -> dict[str, ExchangeConfig]:
         return {name: ex for name, ex in self.exchanges.items() if ex.enabled}
+
+    def symbols_for(self, exchange: str) -> tuple[str, ...]:
+        ex = self.exchanges.get(exchange)
+        return ex.symbols if ex is not None and ex.symbols else self.universe.symbols

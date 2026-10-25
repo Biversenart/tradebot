@@ -54,6 +54,20 @@ class MarketDataFeed:
         self.book_seen: dict[str, datetime] = {}
         self.restarts: dict[str, int] = {}
 
+    def restrict_to_listed(self) -> list[str]:
+        """Drop symbols the exchange does not list (after load_markets); returns them."""
+        try:
+            listed = set(self.adapter.symbols())
+        except Exception:  # adapter without a market list: keep everything
+            return []
+        if not listed:
+            return []
+        missing = [s for s in self.symbols if s not in listed]
+        self.symbols = [s for s in self.symbols if s in listed]
+        for s in missing:
+            self.builders.pop(s, None)
+        return missing
+
     def _fresh(self, seen: dict[str, datetime], symbol: str) -> bool:
         t = seen.get(symbol)
         return t is not None and self._clock.now() - t <= self.stale_after

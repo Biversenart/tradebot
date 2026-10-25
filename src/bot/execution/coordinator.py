@@ -192,6 +192,15 @@ class TradingCoordinator:
         eng = self.engines.get(sig.exchange)
         if eng is None or sig.plan is None:
             return
+        if not eng.adapter.supports_exchange_stop:
+            # rule 9: a position must be protected by a stop resting on the exchange
+            _log.warning(
+                "signal_rejected",
+                symbol=sig.symbol,
+                exchange=sig.exchange,
+                reasons=["borsada stop emri desteklenmiyor (kural 9)"],
+            )
+            return
         async with self._lock:
             await self.repo.save_signal(sig)
             feed = self.feeds.get(sig.exchange)
