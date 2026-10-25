@@ -52,3 +52,32 @@ async def test_run_bot_stops_cleanly(tmp_path: Path) -> None:
     await asyncio.sleep(0)
     stop.set()
     await asyncio.wait_for(task, timeout=2)
+
+
+def test_net_check_paper_mode(tmp_path: Path) -> None:
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("exchanges: {binance: {enabled: false}}\n", encoding="utf-8")
+    result = runner.invoke(
+        app, ["net-check", "-c", str(cfg), "--env-file", str(tmp_path / "none.env")]
+    )
+    assert result.exit_code == 0, result.output
+    assert "Paper" in result.stdout
+
+
+def test_net_check_testnet_blocks_without_proxy(tmp_path: Path) -> None:
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text(
+        "mode: testnet\negress:\n  mode: proxy\n  request_timeout_seconds: 2\n", encoding="utf-8"
+    )
+    env = tmp_path / ".env"
+    # proxy points at a closed local port: must fail closed, never go direct
+    env.write_text(
+        "TRADING_MODE=testnet\nEGRESS_EXPECTED_IP=8.8.8.8\n"
+        "EGRESS_PROXY_URL=socks5://u:topsecret@127.0.0.1:9\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, ["net-check", "-c", str(cfg), "--env-file", str(env)])
+    assert result.exit_code == 1
+    assert "unreachable" in result.stdout
+    assert "HAYIR" in result.stdout
+    assert "topsecret" not in result.output

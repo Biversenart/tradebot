@@ -1,0 +1,16 @@
+# VPS (Ubuntu 24.04) WireGuard sunucu şablonu.
+# setup_wireguard_server.sh bu dosyadan /etc/wireguard/wg0.conf üretir. Elle düzenleyecekseniz
+# __...__ yer tutucularını doldurun. Anahtarlar ASLA repoya girmez.
+[Interface]
+Address = __SERVER_TUNNEL_IP__/24
+ListenPort = __WG_PORT__
+PrivateKey = __SERVER_PRIVATE_KEY__
+# Tünelden gelen trafiği VPS'in genel IP'siyle internete çıkar (NAT).
+PostUp = iptables -t nat -A POSTROUTING -s __TUNNEL_SUBNET__ -o __WAN_IF__ -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -s __TUNNEL_SUBNET__ -o __WAN_IF__ -j MASQUERADE
+
+# Ev bilgisayarı (bot)
+[Peer]
+PublicKey = __CLIENT_PUBLIC_KEY__
+PresharedKey = __PRESHARED_KEY__
+AllowedIPs = __CLIENT_TUNNEL_IP__/32

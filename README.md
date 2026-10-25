@@ -11,7 +11,8 @@ pip install -e ".[dev]"
 cp .env.example .env                       # sırlar yalnızca burada; ASLA commit etme
 cp config/config.example.yaml config/config.yaml
 bot config-check                           # config + .env doğrulama, etkin modu gösterir
-bot run                                    # Aşama 0: iskelet döngüsü (emir göndermez)
+bot net-check                              # dış IP + borsa erişim testi
+bot run                                    # servisleri başlatır
 ```
 
 Kalite kontrolleri:
@@ -21,11 +22,12 @@ mypy src tests
 pytest            # `integration` işaretli testler varsayılan olarak atlanır
 ```
 
-Docker (bot + postgres; `.env` içinde `POSTGRES_PASSWORD` gerekli):
+Docker (wireguard + bot + postgres; `.env` içinde `POSTGRES_PASSWORD` ve `deploy/local/wg_confs/wg0.conf` gerekli):
 ```bash
 docker compose up -d --build
+docker compose exec bot bot net-check --config /app/config/config.yaml
 ```
-> Testnet/live için sabit IP'li egress (WireGuard) Aşama 1'de eklenecek; o zamana kadar yalnızca paper.
+Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL_KURULUM.md`.
 
 ## Güvenlik kuralları (özet)
 - `live` için `.env`'de `TRADING_MODE=live` **ve** `config.yaml`'da `mode: live` + `live_trading_confirmed: true` gerekir.
@@ -46,4 +48,5 @@ docker compose up -d --build
 
 ## Durum
 - ✅ Aşama 0 — İskelet (config + çift onay, JSON log + maskeleme, Decimal çekirdek modeller, EventBus, CI, Docker)
-- ⏭️ Sıradaki: Aşama 1 — Ağ katmanı ve sabit IP
+- ✅ Aşama 1 — Sabit IP: egress (proxy/WireGuard), fail-closed IP doğrulama, restricted-location testi, heartbeat, kill-switch'li compose, VPS/lokal kurulum rehberleri
+- ⏭️ Sıradaki: Aşama 2 — Borsa bağlayıcıları ve veri

@@ -38,8 +38,9 @@ class _Strict(BaseModel):
 
 
 class EgressConfig(_Strict):
-    mode: EgressMode = EgressMode.PROXY
+    mode: EgressMode = EgressMode.WIREGUARD
     check_interval_minutes: int = Field(default=5, gt=0)
+    request_timeout_seconds: int = Field(default=10, gt=0, le=120)
     ip_check_services: tuple[str, ...] = Field(
         default=("https://api.ipify.org", "https://ifconfig.me/ip"), min_length=2
     )
@@ -245,6 +246,13 @@ class TelegramConfig(_Strict):
     daily_summary_hour: int = Field(default=23, ge=0, le=23)
 
 
+class HeartbeatConfig(_Strict):
+    """Periodic ping to an external monitor (URL in `.env` HEARTBEAT_URL)."""
+
+    enabled: bool = False
+    interval_seconds: int = Field(default=60, ge=10)
+
+
 class NotifyConfig(_Strict):
     telegram: TelegramConfig = Field(default_factory=TelegramConfig)
 
@@ -272,6 +280,7 @@ class AppConfig(_Strict):
     risk: RiskConfig = Field(default_factory=RiskConfig)
     operations: OperationsConfig = Field(default_factory=OperationsConfig)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
+    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
 
     @property

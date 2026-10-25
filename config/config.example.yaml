@@ -5,9 +5,10 @@ base_currency: USDT
 log_level: INFO                 # DEBUG | INFO | WARNING | ERROR
 
 egress:
-  mode: proxy                   # direct_vps | wireguard | proxy | managed_proxy
+  mode: wireguard               # direct_vps | wireguard | proxy | managed_proxy
   # proxy URL'si ve beklenen IP .env'den okunur (EGRESS_PROXY_URL, EGRESS_EXPECTED_IP)
   check_interval_minutes: 5
+  request_timeout_seconds: 10
   ip_check_services: ["https://api.ipify.org", "https://ifconfig.me/ip"]
   fail_closed: true             # değiştirilemez; kod false'u reddeder
 
@@ -97,6 +98,10 @@ operations:
 
 notify:
   telegram: { enabled: true, daily_summary_hour: 23 }
+
+heartbeat:
+  enabled: false                # true: HEARTBEAT_URL'ye her interval_seconds'ta ping
+  interval_seconds: 60
 
 api:
   enabled: true

@@ -1,0 +1,17 @@
+# Ev bilgisayarı WireGuard istemci şablonu (docker-compose `wireguard` servisi kullanır).
+# Doldurulmuş hali: deploy/local/wg_confs/wg0.conf  (gitignore'da; ASLA commit etme)
+[Interface]
+Address = __CLIENT_TUNNEL_IP__/32
+PrivateKey = __CLIENT_PRIVATE_KEY__
+# DNS de tünelden gider (DNS sızıntısı yok).
+DNS = 1.1.1.1, 9.9.9.9
+
+[Peer]
+PublicKey = __SERVER_PUBLIC_KEY__
+PresharedKey = __PRESHARED_KEY__
+# Endpoint MUTLAKA IP olmalı (kill-switch DNS'e izin vermeden yalnızca bu IP:port'a UDP açar).
+Endpoint = __VPS_PUBLIC_IP__:__WG_PORT__
+# Tüm IPv4 trafiği tünelden.
+AllowedIPs = 0.0.0.0/0
+# NAT/modem arkasında bağlantıyı canlı tutar; healthcheck el sıkışma tazeliğine bakar.
+PersistentKeepalive = 25

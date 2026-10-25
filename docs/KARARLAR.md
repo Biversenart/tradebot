@@ -18,3 +18,9 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | TradePlan R:R | `risk_reward` = giriş bölgesi ortasından **son** TP'ye R katı; her TP için ayrıca `reward_risk_ratios` | `take_profits: [1,2,3]` R katlarıyla `min_risk_reward: 2.0` filtresi ancak son hedefe göre anlamlı |
 | 2026-10-02 | Config sınırları | Kaldıraç ≤ 3x, Kelly ≤ ¼ ve ≥ 100 işlem, kalite çarpanı ≤ 1.5, `fail_closed` yalnızca `true` | Spec §5.6/§5.11 tavanları şema seviyesinde zorlanır |
 | 2026-10-02 | Paket adı | Kaynak `src/bot/` (spec §4), dağıtım adı `tradebot`, CLI komutu `bot` | Spec ile uyum |
+| 2026-10-02 | Varsayılan egress | `egress.mode: wireguard` | Birincil senaryo: bot evde, trafik WireGuard ile VPS'ten |
+| 2026-10-02 | IP doğrulama kuralı | Tüm servisler (≥2) beklenen IP'yi döndürmeli; biri ulaşılamazsa/ farklıysa emir yok; kontrol 2×aralıktan eskiyse bayat → emir yok | Fail-closed; tek servis yanıltabilir |
+| 2026-10-02 | Heartbeat | Yalnızca sağlıklıyken ping (push modeli); URL `.env`'de | Uyarı mantığı harici serviste; bot ölürse de çalışır |
+| 2026-10-02 | Kill-switch | iptables OUTPUT DROP, wg-quick'ten bağımsız; yalnızca wg0, compose alt ağı ve VPS UDP portu | Tünel düşerse doğrudan çıkış imkânsız |
+| 2026-10-02 | Postgres erişimi | Kill-switch ağında sabit IP (172.28.0.10) | DNS tünelden gider; compose servis adı çözülmez |
+| 2026-10-02 | Dante | Yalnızca tünel adresinde dinler (internete kapalı) | SOCKS parolası düz metin; tünel içinde şifreli kalır |

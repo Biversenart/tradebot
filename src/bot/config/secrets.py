@@ -29,6 +29,7 @@ class Secrets(BaseSettings):
     telegram_bot_token: SecretStr | None = None
     telegram_chat_id: str | None = None
     api_auth_token: SecretStr | None = None
+    heartbeat_url: SecretStr | None = None
     database_url: SecretStr = SecretStr("sqlite+aiosqlite:///./data/bot.db")
     anthropic_api_key: SecretStr | None = None
 

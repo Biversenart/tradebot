@@ -84,6 +84,9 @@ def resolve_trading_mode(secrets: Secrets, config: AppConfig) -> Mode:
             "live_trading_confirmed: true birlikte gerekli. Canlı işlem açılmadı."
         )
 
+    if config.heartbeat.enabled and secrets.heartbeat_url is None:
+        raise ConfigError("heartbeat.enabled=true iken HEARTBEAT_URL zorunludur.")
+
     if mode in (Mode.TESTNET, Mode.LIVE):
         _validate_expected_ip(secrets.egress_expected_ip, mode)
         if config.egress.mode.requires_proxy_url and secrets.egress_proxy_url is None:
