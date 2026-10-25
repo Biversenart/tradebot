@@ -31,3 +31,5 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | PaperExchange | Spot; market emri derinliği tüketir (IOC), limit kalan kısım maker, stop bid/ask ile tetiklenir; komisyon quote cinsinden; rezervasyon free→used | Gerçekçi kayma + basit muhasebe |
 | 2026-10-02 | Geçmiş veri | Parquet `data/ohlcv/<borsa>/<BASE-QUOTE>/<tf>.parquet`, float64 kolonlar; Candle'a `Decimal(str(x))` | ccxt OHLCV'yi float verir; para hesapları Decimal kalır |
 | 2026-10-02 | Paper veri kaynağı | Paper modda gerçek (live) public uç noktalar, anahtarsız | Testnet fiyatları gerçek piyasayı yansıtmaz |
+| 2026-10-02 | Gösterge hesapları | Kendi implementasyonumuz (pandas-ta değil); EMA/RMA SMA ile tohumlanır (TradingView/TA-Lib uyumlu); göstergeler float, para hesapları Decimal | pandas-ta bakımı zayıf; RSI StockCharts referansıyla birebir doğrulandı |
+| 2026-10-02 | Volatil rejim | ATR% ≥ 2 × son 500 mumun medyanı | Kısa pencereli yüzdelik, uzun süren kaosu "normal" sayıyordu |

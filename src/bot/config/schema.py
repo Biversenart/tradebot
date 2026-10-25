@@ -121,8 +121,75 @@ class TradePlanConfig(_Strict):
         return self
 
 
+class IndicatorParams(_Strict):
+    ema_periods: tuple[int, ...] = (9, 21, 50, 200)
+    rsi_period: int = Field(default=14, gt=1)
+    macd_fast: int = Field(default=12, gt=0)
+    macd_slow: int = Field(default=26, gt=0)
+    macd_signal: int = Field(default=9, gt=0)
+    bb_period: int = Field(default=20, gt=1)
+    bb_std: Decimal = Field(default=Decimal(2), gt=0)
+    atr_period: int = Field(default=14, gt=0)
+    adx_period: int = Field(default=14, gt=0)
+    volume_sma: int = Field(default=20, gt=0)
+
+
+class RegimeParams(_Strict):
+    adx_trend: Decimal = Field(default=Decimal(25), gt=0)
+    ema_fast: int = Field(default=50, gt=0)
+    ema_slow: int = Field(default=200, gt=0)
+    slope_bars: int = Field(default=10, gt=0)
+    percentile_lookback: int = Field(default=200, gt=10)
+    volatility_lookback: int = Field(default=500, gt=10)
+    volatile_atr_ratio: Decimal = Field(default=Decimal("2.0"), gt=1)
+    squeeze_bb_percentile: Decimal = Field(default=Decimal("0.15"), gt=0, le=1)
+
+
+class StructureParams(_Strict):
+    swing_lookback: int = Field(default=3, ge=1)  # fractal: n bars each side
+
+
+class ZoneParams(_Strict):
+    cluster_atr: Decimal = Field(default=Decimal("0.6"), gt=0)
+    min_touches: int = Field(default=2, ge=1)
+    max_zones: int = Field(default=8, ge=1)
+    impulse_atr: Decimal = Field(default=Decimal("1.5"), gt=0)
+    base_max_body_atr: Decimal = Field(default=Decimal("0.5"), gt=0)
+    equal_level_atr: Decimal = Field(default=Decimal("0.15"), gt=0)
+    proximity_atr: Decimal = Field(default=Decimal("1.0"), gt=0)
+
+
+class VolumeProfileParams(_Strict):
+    bins: int = Field(default=50, ge=5)
+    value_area_pct: Decimal = Field(default=Decimal(70), gt=0, lt=100)
+    lookback_bars: int = Field(default=300, ge=10)
+
+
+class PatternParams(_Strict):
+    doji_body_pct: Decimal = Field(default=Decimal("0.1"), gt=0, lt=1)
+    pin_wick_body_ratio: Decimal = Field(default=Decimal(2), gt=0)
+    level_tolerance_atr: Decimal = Field(default=Decimal("0.5"), gt=0)
+    min_pattern_bars: int = Field(default=10, ge=3)
+    triangle_flat_slope_atr: Decimal = Field(default=Decimal("0.05"), ge=0)
+    flag_pole_atr: Decimal = Field(default=Decimal(3), gt=0)
+    channel_lookback: int = Field(default=50, ge=10)
+    channel_std: Decimal = Field(default=Decimal(2), gt=0)
+
+
+class DivergenceParams(_Strict):
+    max_bars_between: int = Field(default=60, ge=5)
+    min_bars_between: int = Field(default=5, ge=1)
+
+
 class AnalysisConfig(_Strict):
     timeframes: TimeframesConfig = Field(default_factory=TimeframesConfig)
+    indicators: IndicatorParams = Field(default_factory=IndicatorParams)
+    regime: RegimeParams = Field(default_factory=RegimeParams)
+    structure: StructureParams = Field(default_factory=StructureParams)
+    zones: ZoneParams = Field(default_factory=ZoneParams)
+    volume_profile: VolumeProfileParams = Field(default_factory=VolumeProfileParams)
+    patterns: PatternParams = Field(default_factory=PatternParams)
+    divergence: DivergenceParams = Field(default_factory=DivergenceParams)
     confluence: ConfluenceConfig = Field(default_factory=ConfluenceConfig)
     trade_plan: TradePlanConfig = Field(default_factory=TradePlanConfig)
     llm_commentary: bool = False
