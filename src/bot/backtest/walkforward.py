@@ -117,6 +117,8 @@ class WalkForwardResult:
             }
             for k, v in rows.items()
         ]
+        if not data:  # no folds (not enough history)
+            return pd.DataFrame(columns=["params", "mean_objective", "folds"])
         return pd.DataFrame(data).sort_values("mean_objective", ascending=False, na_position="last")
 
 
