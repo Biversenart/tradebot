@@ -12,3 +12,9 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Çalışma yeri | Bot kullanıcının lokal bilgisayarında, trafik WireGuard ile VPS'ten çıkar | Kullanıcı tercihi |
 | 2026-10-02 | Borsa hesabı | Binance global (Binance TR kapsam dışı) | Kullanıcının hesabı global'de |
 | 2026-10-02 | VPS bölgesi | Frankfurt; ABD bölgeleri yasak | Binance global ABD IP'lerini reddeder |
+| 2026-10-02 | Mod çözümleme | `.env` TRADING_MODE ve config `mode` ikisi de verilmişse aynı olmalı; aksi halde bot başlamaz. `live` için ikisi de `live` + `live_trading_confirmed: true` | Belirsiz mod, yanlışlıkla gerçek parayla işleme yol açabilir |
+| 2026-10-02 | Testnet/live tutarlılığı | `testnet` modunda `testnet: false` borsa, `live` modunda `testnet: true` borsa reddedilir | Testnet sanılan modda gerçek emir gönderilmesini engeller |
+| 2026-10-02 | EGRESS_EXPECTED_IP | Yalnızca genel (global) IP kabul edilir; `0.0.0.0`, özel ağ, loopback reddedilir | `.env.example`'daki yer tutucu ile testnet/live açılmasın |
+| 2026-10-02 | TradePlan R:R | `risk_reward` = giriş bölgesi ortasından **son** TP'ye R katı; her TP için ayrıca `reward_risk_ratios` | `take_profits: [1,2,3]` R katlarıyla `min_risk_reward: 2.0` filtresi ancak son hedefe göre anlamlı |
+| 2026-10-02 | Config sınırları | Kaldıraç ≤ 3x, Kelly ≤ ¼ ve ≥ 100 işlem, kalite çarpanı ≤ 1.5, `fail_closed` yalnızca `true` | Spec §5.6/§5.11 tavanları şema seviyesinde zorlanır |
+| 2026-10-02 | Paket adı | Kaynak `src/bot/` (spec §4), dağıtım adı `tradebot`, CLI komutu `bot` | Spec ile uyum |

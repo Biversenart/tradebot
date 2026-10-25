@@ -2,15 +2,15 @@
 
 Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle. Bir aşama bitmeden diğerine geçme.
 
-## Aşama 0 — İskelet
-- [ ] `pyproject.toml` (Python 3.12, bağımlılıklar, ruff/mypy/pytest ayarları)
-- [ ] Klasör yapısı (`docs/PROJE_SPEC.md` §4), `.gitignore`, `.env.example`, `config/config.example.yaml`
-- [ ] `pydantic-settings` ile config yükleme + doğrulama; live çift onay kontrolü
-- [ ] `structlog` JSON log + sır maskeleme
-- [ ] Çekirdek modeller: `Candle`, `Ticker`, `OrderBook`, `OrderIntent`, `Order`, `Fill`, `Position`, `TradePlan`, `Signal` (Decimal)
-- [ ] EventBus
-- [ ] GitHub Actions: ruff, mypy, pytest, gitleaks, pip-audit
-- [ ] Dockerfile + docker-compose (bot, postgres)
+## Aşama 0 — İskelet ✅
+- [x] `pyproject.toml` (Python 3.12, bağımlılıklar, ruff/mypy/pytest ayarları)
+- [x] Klasör yapısı (`docs/PROJE_SPEC.md` §4), `.gitignore`, `.env.example`, `config/config.example.yaml`
+- [x] `pydantic-settings` ile config yükleme + doğrulama; live çift onay kontrolü
+- [x] `structlog` JSON log + sır maskeleme
+- [x] Çekirdek modeller: `Candle`, `Ticker`, `OrderBook`, `OrderIntent`, `Order`, `Fill`, `Position`, `TradePlan`, `Signal` (Decimal)
+- [x] EventBus
+- [x] GitHub Actions: ruff, mypy, pytest, gitleaks, pip-audit
+- [x] Dockerfile + docker-compose (bot, postgres)
 
 ## Aşama 1 — Ağ katmanı ve sabit IP
 - [ ] `net/egress.py`: proxy URL'lerinden HTTP/SOCKS/WS ayarı üretme

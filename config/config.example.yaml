@@ -2,6 +2,7 @@
 mode: paper                     # backtest | paper | testnet | live
 live_trading_confirmed: false   # live için .env'de TRADING_MODE=live ile BİRLİKTE true olmalı
 base_currency: USDT
+log_level: INFO                 # DEBUG | INFO | WARNING | ERROR
 
 egress:
   mode: proxy                   # direct_vps | wireguard | proxy | managed_proxy
