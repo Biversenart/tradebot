@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import html
 import math
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from bot.backtest.bias import BiasChecks
 from bot.backtest.engine import TradeRecord
 from bot.backtest.metrics import Metrics, Thresholds, drawdown_series
 from bot.backtest.walkforward import WalkForwardResult
-from bot.config.schema import BacktestConfig
 
 METRIC_LABELS = {
     "trades": "İşlem sayısı",
@@ -39,33 +38,6 @@ CHECK_LABELS = {
     "max_drawdown": "Maks. drawdown ≤ %15",
     "sample_size": "≥ 100 işlem",
 }
-
-
-@dataclass(frozen=True)
-class BiasChecks:
-    lookahead_passed: bool
-    survivorship_note: str
-    commission_pct: float
-    slippage_bps: float
-    latency_bars: int
-
-    def lines(self) -> list[str]:
-        return [
-            f"Lookahead (geleceği görme) testi: {'GEÇTİ' if self.lookahead_passed else 'BAŞARISIZ'}",
-            f"Survivorship: {self.survivorship_note}",
-            f"Komisyon: %{self.commission_pct:g} / taraf · Kayma: {self.slippage_bps:g} bps · "
-            f"Gecikme: {self.latency_bars} mum (sinyal kapanışta, dolum sonraki açılışta)",
-        ]
-
-
-def bias_checks(cfg: BacktestConfig, lookahead_passed: bool, symbols: list[str]) -> BiasChecks:
-    note = (
-        "Bu rapor yalnızca seçilen sembolleri içerir; delist olmuş coinler dahil değil. "
-        "Sonuçlar hayatta kalan coinlere göre iyimser olabilir."
-    )
-    return BiasChecks(
-        lookahead_passed, note, float(cfg.commission_pct), float(cfg.slippage_bps), cfg.latency_bars
-    )
 
 
 def _fmt(v: float | int) -> str:

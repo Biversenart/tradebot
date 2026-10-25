@@ -152,6 +152,7 @@ class BotRuntime:
                 {f.adapter.name: f.adapter for f in self._ready_feeds},
                 {f.adapter.name: f for f in self._ready_feeds},
                 self.orders_allowed,
+                http_get=self.http.get_text,
             )
             await self.trading.start(self.settings, stop, tasks)
             await self._start_interfaces(stop, tasks)
@@ -180,6 +181,10 @@ class BotRuntime:
             egress_ok=self.orders_allowed,
             analyze=analyze,
             persist=coord.persist,
+            config_log=stack.config_log,
+            ops=stack.ops,
+            shadow=(stack.shadow_registry, stack.shadow_book),
+            persist_ops=stack.persist_ops,
         )
         self.control = control
         if stack.runner is not None:

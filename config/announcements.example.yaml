@@ -1,0 +1,16 @@
+# Manuel borsa duyuruları (kopyala: config/announcements.yaml). Bot her kontrolde okur.
+# kind: delisting | maintenance | wallet_suspension
+# - delisting: listedeki varlıkları içeren paritelerde yeni işlem açılmaz;
+#   operations.on_delisting: close ise açık pozisyonlar kapatılır.
+# - maintenance: effective_at - maintenance_block_before_minutes ile until arasında
+#   o borsada yeni işlem açılmaz (until yoksa başlangıç + 2 saat).
+# - wallet_suspension: yalnızca uyarı (transferler zaten manuel).
+- exchange: binance
+  kind: maintenance
+  title: "Planlı sistem bakımı"
+  effective_at: 2026-11-15T02:00:00Z
+  until: 2026-11-15T04:00:00Z
+- exchange: binance
+  kind: delisting
+  title: "Örnek delisting"
+  assets: [EXAMPLECOIN]

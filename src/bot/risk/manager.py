@@ -3,10 +3,11 @@
 The execution engine only accepts `ApprovedIntent`, which can only be constructed by this
 module (a private token is checked), so nothing can reach an exchange without approval.
 
-Entry checks, in order: egress gate -> kill switch -> plan/stop sanity -> open-position limit ->
-spread -> growth sizing -> correlation -> exposure / leverage caps -> precision & min notional ->
-liquidity (order book depth). Exits (reduce-only) are always allowed, even under the kill
-switch, but may never exceed the position.
+Entry checks, in order: egress gate -> kill switch -> ops blocks (depeg, clock skew,
+delisting/maintenance) -> plan/stop sanity -> open-position limit -> spread -> growth sizing
+(on canary-capped equity in live) -> low-liquidity factor -> correlation -> exposure / leverage
+caps -> precision & min notional -> liquidity (order book depth). Exits (reduce-only) are
+always allowed, even under the kill switch, but may never exceed the position.
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from bot.core.models import (
 )
 from bot.core.precision import meets_min_notional, round_amount
 from bot.indicators import atr_pct
+from bot.ops.guard import OpsGuard
 from bot.risk.kill_switch import KillSwitch
 from bot.risk.portfolio import PortfolioView, returns_frame
 from bot.risk.report import (
@@ -98,8 +100,10 @@ class RiskManager:
         sizer: GrowthSizer,
         order_gate: Callable[[], bool] = lambda: True,
         market_type: str = "spot",
+        ops: OpsGuard | None = None,
     ) -> None:
         self.cfg = config
+        self.ops = ops
         self.risk = config.risk
         self.kill_switch = kill_switch
         self.sizer = sizer
@@ -134,6 +138,10 @@ class RiskManager:
         if not self.kill_switch.allows_new_orders():
             reasons = ", ".join(r.value for r in self.kill_switch.active_reasons)
             return self._reject(report, f"kill switch aktif: {reasons}")
+        if self.ops is not None and (
+            block := self.ops.block_reason(signal.exchange, signal.symbol)
+        ):
+            return self._reject(report, block)
         if plan is None:
             return self._reject(report, "TradePlan yok")
         if (long and stop >= entry) or (not long and stop <= entry):
@@ -149,6 +157,14 @@ class RiskManager:
 
         equity = portfolio.equity
         qty = self.sizer.size(equity, entry, stop, signal)
+        if self.ops is not None:
+            # canary cap: scale AFTER sizing so the sizer's drawdown/compounding logic still
+            # sees the real account; exposure caps below use the capped equity
+            capped = self.ops.effective_equity(equity)
+            if 0 < capped < equity:
+                qty = qty * capped / equity
+                report.reasons.append(f"kanarya sermaye tavanı: {capped:.2f} / {equity:.2f}")
+            equity = capped
         sb = self.sizer.last
         if sb is not None:
             report.risk_pct = sb.final_risk_pct
@@ -157,6 +173,15 @@ class RiskManager:
                 return self._reject(report, sb.paused_reason)
         if qty <= 0:
             return self._reject(report, "boyutlama sıfır miktar verdi")
+        if self.ops is not None:
+            factor, notes = self.ops.risk_factor(self.kill_switch.clock.now(), ctx.book)
+            if factor <= 0:
+                return self._reject(
+                    report, "düşük likidite modu: yeni işlem kapalı (" + ", ".join(notes) + ")"
+                )
+            if factor < 1:
+                qty *= factor
+                report.reasons.append(f"düşük likidite ({', '.join(notes)}): boyut ×{factor}")
         report.requested_qty = qty
 
         # correlation with open positions in the same direction
@@ -286,11 +311,15 @@ class RiskManager:
             return self._reject(report, "egress doğrulanmadı (fail-closed)")
         if not self.kill_switch.allows_new_orders():
             return self._reject(report, "kill switch aktif")
+        if self.ops is not None and (
+            block := self.ops.block_reason(intent.exchange, intent.symbol)
+        ):
+            return self._reject(report, block)
         px = intent.price or (ctx.ticker.last if ctx.ticker else None)
         if px is None:
             return self._reject(report, "fiyat bilinmiyor")
         notional = intent.amount * px
-        eq = portfolio.equity
+        eq = self.ops.effective_equity(portfolio.equity) if self.ops else portfolio.equity
         if portfolio.exposure() + notional > eq * self.risk.max_total_exposure_pct / 100:
             return self._reject(report, "toplam maruziyet limiti")
         if (

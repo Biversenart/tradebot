@@ -6,7 +6,7 @@ never silently fall back to defaults.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Literal
@@ -228,6 +228,10 @@ class BacktestConfig(_Strict):
     commission_pct: Pct = Field(default=Decimal("0.1"), ge=0, le=5)  # per side, taker
     slippage_bps: Decimal = Field(default=Decimal(5), ge=0, le=500)
     latency_bars: int = Field(default=1, ge=1)  # signal at close t -> fill at open t+latency
+    # bias checks (spec §5.13): costs below these are flagged as unrealistic
+    min_commission_pct: Pct = Field(default=Decimal("0.075"), ge=0)
+    min_slippage_bps: Decimal = Field(default=Decimal(2), ge=0)
+    delisted_symbols: tuple[str, ...] = ()  # e.g. ("LUNA/USDT", "FTT/USDT") with downloaded data
     allow_short: bool = True
     trailing_atr_mult: Decimal = Field(default=Decimal(2), gt=0)
     structure_trail_bars: int = Field(default=10, ge=2)
@@ -375,17 +379,37 @@ class RiskConfig(_Strict):
 
 
 class LowLiquidityConfig(_Strict):
+    """Weekend / holiday / thin-book mode (spec §5.13): reduce risk or stop opening trades."""
+
     enabled: bool = True
     weekend_risk_factor: Decimal = Field(default=Decimal("0.5"), gt=0, le=1)
+    holidays: tuple[date, ...] = ()  # UTC dates (e.g. 2026-12-25)
+    holiday_risk_factor: Decimal = Field(default=Decimal("0.5"), gt=0, le=1)
+    min_depth_quote: Decimal = Field(default=Decimal(0), ge=0)  # 0 = off; depth within 0.5%
+    thin_book_risk_factor: Decimal = Field(default=Decimal("0.5"), gt=0, le=1)
+    action: Literal["reduce", "halt"] = "reduce"  # halt: no new trades while low liquidity
 
 
 class OperationsConfig(_Strict):
+    # canary: live sizing uses at most this share of equity; raised only by manual approval
     live_capital_cap_pct: Pct = Field(default=Decimal(10), gt=0, le=100)
+    canary_days: int = Field(default=14, ge=0)
+    max_cap_step_factor: Decimal = Field(default=Decimal(2), gt=1)  # one raise <= x2
+    # shadow: changed strategy params run as paper next to the approved version (testnet/live)
     shadow_mode: bool = True
+    shadow_min_trades: int = Field(default=20, ge=1)
     stablecoin_depeg_threshold_pct: Pct = Field(default=Decimal("0.5"), gt=0)
+    stablecoin_pairs: tuple[str, ...] = ("USDC/USDT", "FDUSD/USDT")
     max_balance_per_exchange_usdt: Decimal = Field(default=Decimal(5000), gt=0)
+    balance_alert_repeat_hours: float = Field(default=6, gt=0)
     low_liquidity_mode: LowLiquidityConfig = Field(default_factory=LowLiquidityConfig)
     watch_exchange_announcements: bool = True
+    announcement_check_minutes: float = Field(default=15, gt=0)
+    announcements_file: str | None = "config/announcements.yaml"  # manual entries (optional)
+    on_delisting: Literal["close", "keep"] = "close"
+    maintenance_block_before_minutes: int = Field(default=60, ge=0)
+    max_clock_skew_ms: int = Field(default=1000, gt=0)
+    check_interval_seconds: float = Field(default=60, gt=0)
 
 
 class TelegramConfig(_Strict):

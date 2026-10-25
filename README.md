@@ -27,6 +27,7 @@ ruff check . && ruff format --check .
 mypy src tests
 pytest                  # `integration` işaretli testler varsayılan olarak atlanır
 pytest -m integration   # gerçek borsa uç noktalarına bağlanan testler
+pytest tests/chaos      # kaos testleri (WS kopması, proxy düşmesi, kısmi dolum, 5xx, saat kayması)
 ```
 
 Veritabanı migration (postgres): `docker compose run --rm bot alembic upgrade head` (SQLite'ta tablolar otomatik oluşur).
@@ -54,6 +55,7 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - `docs/CLAUDE_CODE_PROMPTLARI.md` — her aşama için hazır promptlar
 - `docs/EK_OZELLIKLER.md` — ileri özellik önerileri
 - `docs/KARARLAR.md` — karar günlüğü
+- `docs/OPERASYON.md` — operasyonel güvenlik ağları ve kullanım (kanarya, gölge mod, duyurular…)
 - `docs/BACKTEST_OZET.md` — Aşama 4 backtest özeti (sentetik veri; gerçek veriyle yeniden çalıştırılmalı)
 
 ## Durum
@@ -65,4 +67,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 5 — RiskManager (ApprovedIntent), büyüme odaklı boyutlama, kill switch, portföy riski; emir yürütme (borsa tarafı zorunlu stop, idempotent id, kısmi dolum), reconciliation, SQLAlchemy + alembic, `bot run` ile uçtan uca paper/testnet akışı
 - ✅ Aşama 6 — Arbitraj: cross-exchange (derinlik, ücret, kayma, gecikme, TRY köprüsü) ve üçgen tarayıcılar, leg-risk hedge'li paper yürütme, rebalans uyarıları; fırsatlar DB'ye loglanır
 - ✅ Aşama 7 — Telegram (bildirim + /durum /pozisyonlar /analiz /durdur /devam, günlük özet) ve token korumalı web panel (kill switch butonu, equity, pozisyonlar, strateji aç/kapa, analiz raporları)
-- ⏭️ Sıradaki: Aşama 7.5 — Operasyonel güvenlik ağları
+- ✅ Aşama 7.5 — Operasyonel güvenlik ağları: kanarya sermaye tavanı, gölge mod, borsa duyuru takibi, stablecoin depeg, borsa başına bakiye tavanı, hafta sonu/düşük likidite modu, saat kayması koruması, config değişiklik günlüğü, backtest önyargı kontrolleri, `tests/chaos` kaos testleri (`docs/OPERASYON.md`)
+- ⏭️ Sıradaki: Aşama 8 — Paper çalıştırma ve değerlendirme

@@ -16,6 +16,7 @@ import html
 import secrets
 import time
 from collections import deque
+from decimal import Decimal
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -104,6 +105,8 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px
 <div class="card"><h3>Son işlemler</h3><table id="trades"></table></div>
 <div class="card"><h3>Stratejiler</h3><table id="strategies"></table></div>
 <div class="card"><h3>Risk olayları</h3><table id="events"></table></div>
+<div class="card"><h3>Operasyonel güvenlik</h3><pre id="ops" style="white-space:pre-wrap"></pre></div>
+<div class="card"><h3>Config değişiklik günlüğü</h3><table id="changes"></table></div>
 <script>
 const csrf = document.cookie.split('; ').find(c=>c.startsWith('tb_csrf='))?.split('=')[1] || '';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -129,6 +132,8 @@ async function refresh(){
   table(document.getElementById('positions'), await api('/api/positions'), [['symbol','Sembol'],['side','Yön'],['amount','Miktar'],['entry','Giriş'],['stop','Stop'],['targets_hit','TP'],['strategy','Strateji']]);
   table(document.getElementById('trades'), await api('/api/trades'), [['closed_at','Kapanış'],['symbol','Sembol'],['side','Yön'],['pnl','PnL'],['reason','Neden'],['strategy','Strateji']]);
   table(document.getElementById('events'), await api('/api/events'), [['t','Zaman'],['level','Seviye'],['code','Kod'],['message','Mesaj']]);
+  document.getElementById('ops').textContent = JSON.stringify(await api('/api/ops'), null, 2);
+  table(document.getElementById('changes'), await api('/api/config-changes'), [['timestamp','Zaman'],['path','Ayar'],['old','Önceki'],['new','Yeni'],['source','Kaynak'],['operator','Kim']]);
   const eq = await api('/api/equity');
   Plotly.react('equity', [{x: eq.map(e=>e.t), y: eq.map(e=>Number(e.equity)), type:'scatter', mode:'lines'}], {margin:{t:10,l:50,r:10,b:30}});
 }
@@ -225,6 +230,22 @@ def create_app(control: BotControl, token: SecretStr) -> FastAPI:
     async def events(_: Auth) -> list[dict[str, Any]]:
         return await control.events()
 
+    @app.get("/api/ops")
+    async def ops(_: Auth) -> dict[str, Any]:
+        return control.ops_status()
+
+    @app.get("/api/config-changes")
+    async def config_changes(_: Auth) -> list[dict[str, Any]]:
+        return await control.config_changes()
+
+    @app.post("/api/capital-cap")
+    async def capital_cap(pct: Decimal, how: Auth) -> dict[str, str]:
+        return {"message": await control.raise_capital_cap(pct, f"Panel ({how})")}
+
+    @app.post("/api/shadow/{name}/approve")
+    async def shadow_approve(name: str, how: Auth) -> dict[str, str]:
+        return {"message": await control.approve_shadow(name, f"Panel ({how})")}
+
     @app.post("/api/kill")
     async def kill(how: Auth) -> dict[str, str]:
         return {"message": await control.stop(f"Panel ({how})")}
@@ -234,8 +255,8 @@ def create_app(control: BotControl, token: SecretStr) -> FastAPI:
         return {"message": await control.resume(f"Panel ({how})")}
 
     @app.post("/api/strategies/{key:path}")
-    async def toggle(key: str, enabled: bool, _: Auth) -> dict[str, Any]:
-        if not control.set_strategy_enabled(key, enabled):
+    async def toggle(key: str, enabled: bool, how: Auth) -> dict[str, Any]:
+        if not await control.set_strategy_enabled(key, enabled, f"Panel ({how})"):
             raise HTTPException(404, "Strateji bulunamadı")
         return {"key": key, "enabled": enabled}
 

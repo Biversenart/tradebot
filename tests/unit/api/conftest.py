@@ -13,6 +13,9 @@ from bot.config.schema import AppConfig
 from bot.config.secrets import Secrets
 from bot.control import BotControl
 from bot.core.clock import ManualClock
+from bot.ops.config_log import ConfigChangeLog
+from bot.ops.service import OpsService
+from bot.ops.shadow import ShadowBook, ShadowRegistry
 from bot.risk.kill_switch import KillSwitch
 from bot.storage.models import PositionRow
 from bot.storage.repository import Repository
@@ -66,6 +69,9 @@ async def control(tmp_path: Path) -> AsyncIterator[BotControl]:
         lambda: D(10_050),
         analyze=analyze,
         reports_dir=reports,
+        config_log=ConfigChangeLog(repo, ManualClock(T)),
+        ops=OpsService(cfg, Mode.PAPER, {}, clock=ManualClock(T), sources=[]),
+        shadow=(ShadowRegistry(), ShadowBook()),
     )
     yield ctl
     await repo.close()

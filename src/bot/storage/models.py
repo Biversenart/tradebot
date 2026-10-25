@@ -149,6 +149,20 @@ class RiskEventRow(Base):
     timestamp: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
 
 
+class ConfigChangeRow(Base):
+    """Config change log (spec §5.13): every setting change with time and previous value."""
+
+    __tablename__ = "config_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    path: Mapped[str] = mapped_column(String(200), index=True)
+    old_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(32))  # config_file | panel | telegram | cli
+    operator: Mapped[str] = mapped_column(String(64), default="")
+    timestamp: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
+
+
 class EquityPointRow(Base):
     __tablename__ = "equity_curve"
 

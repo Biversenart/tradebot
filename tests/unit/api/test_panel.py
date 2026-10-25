@@ -109,3 +109,31 @@ async def test_analyze_endpoint(control: BotControl) -> None:
     r = await c.post("/api/analyze?symbol=eth/usdt", headers=bearer())
     assert r.status_code == 200 and r.json()["symbol"] == "ETH/USDT"
     assert "Teknik Analiz" in r.json()["summary"]
+
+
+async def test_ops_and_config_log_endpoints(control: BotControl) -> None:
+    c = client(control)
+    ops = (await c.get("/api/ops", headers=bearer())).json()
+    assert ops["depeg"] == "normal" and "live" in ops["capital_cap"]
+    await c.post("/api/strategies/breakout:BTC/USDT?enabled=false", headers=bearer())
+    await c.post("/api/kill", headers=bearer())
+    rows = (await c.get("/api/config-changes", headers=bearer())).json()
+    paths = [r["path"] for r in rows]
+    assert (
+        "runtime.kill_switch" in paths and "runtime.strategies.breakout:BTC/USDT.enabled" in paths
+    )
+    assert all(r["source"] == "panel" for r in rows)
+    assert rows[0]["operator"].startswith("Panel")
+
+
+async def test_capital_cap_and_shadow_approve(control: BotControl) -> None:
+    c = client(control)
+    msg = (await c.post("/api/capital-cap?pct=50", headers=bearer())).json()["message"]
+    assert msg.startswith("Reddedildi") and "Kademeli" in msg
+    msg = (await c.post("/api/capital-cap?pct=20", headers=bearer())).json()["message"]
+    assert "%20" in msg
+    msg = (await c.post("/api/shadow/nope/approve", headers=bearer())).json()["message"]
+    assert "bulunamadı" in msg
+    rows = (await c.get("/api/config-changes", headers=bearer())).json()
+    assert rows[0]["path"] == "operations.live_capital_cap_pct"
+    assert (await c.post("/api/capital-cap?pct=20")).status_code == 401

@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 
 from bot.analysis.data import resample_ohlcv
-from bot.backtest.report import bias_checks, summary_markdown, write_report
+from bot.backtest.bias import bias_checks
+from bot.backtest.report import summary_markdown, write_report
 from bot.backtest.walkforward import WalkForwardResult, walk_forward
 from bot.config.schema import AppConfig
 from bot.core.timeframes import timeframe_seconds
@@ -80,6 +81,7 @@ def run_report(
     strategies: list[str],
     out_dir: Path,
     data_note: str,
+    timeframe: str = "1h",
 ) -> tuple[Path, list[Path], list[WalkForwardResult]]:
     out_dir.mkdir(parents=True, exist_ok=True)
     results: list[WalkForwardResult] = []
@@ -93,11 +95,11 @@ def run_report(
             look_ok &= ok
             wf = walk_forward(df, symbol, name, cfg)
             results.append(wf)
-            checks = bias_checks(cfg.backtest, ok, [symbol])
+            checks = bias_checks(cfg.backtest, ok, [symbol], {symbol: df}, timeframe)
             html_paths.append(
                 write_report(wf, checks, out_dir / f"{safe_symbol(symbol)}_{name}.html")
             )
-    checks = bias_checks(cfg.backtest, look_ok, list(frames))
+    checks = bias_checks(cfg.backtest, look_ok, list(frames), frames, timeframe)
     summary = summary_markdown(results, checks, data_note)
     path = out_dir / "OZET.md"
     path.write_text(summary, encoding="utf-8")

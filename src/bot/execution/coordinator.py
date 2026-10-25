@@ -30,6 +30,7 @@ from bot.execution.engine import ExecutionEngine
 from bot.indicators import atr as atr_ind
 from bot.log import get_logger
 from bot.marketdata.feed import MarketDataFeed
+from bot.ops.service import OpsService
 from bot.risk.kill_switch import KillSwitch, KillSwitchState
 from bot.risk.manager import MarketContext, RiskManager
 from bot.risk.portfolio import PortfolioView, PositionView
@@ -59,8 +60,10 @@ class TradingCoordinator:
         feeds: dict[str, MarketDataFeed] | None = None,
         clock: Clock | None = None,
         coord: CoordinatorConfig | None = None,
+        ops: OpsService | None = None,
     ) -> None:
         self.cfg = config
+        self.ops = ops
         self.bus = bus
         self.repo = repo
         self.risk = risk
@@ -76,6 +79,7 @@ class TradingCoordinator:
         self._last_close: dict[tuple[str, str], Decimal] = {}
         self._closing_all = False
         self.last_equity = ZERO
+        self.exchange_equity: dict[str, Decimal] = {}
         self._lock = asyncio.Lock()
         bus.subscribe(SignalEvent, self.on_signal)
         bus.subscribe(CandleEvent, self.on_candle)
@@ -101,8 +105,9 @@ class TradingCoordinator:
 
     def mark(self, exchange: str, symbol: str) -> Decimal | None:
         feed = self.feeds.get(exchange)
-        if feed is not None and symbol in feed.tickers:
-            return feed.tickers[symbol].last
+        ticker = feed.fresh_ticker(symbol) if feed is not None else None
+        if ticker is not None:
+            return ticker.last
         return self._last_close.get((exchange, symbol))
 
     async def portfolio(self, exchange: str | None = None) -> PortfolioView:
@@ -134,6 +139,7 @@ class TradingCoordinator:
             except ExchangeAdapterError as exc:
                 _log.warning("balance_failed", exchange=name, error=str(exc))
                 continue
+            ex_total = ZERO
             for asset, b in bal.items():
                 if asset == base_ccy or asset in self.cfg.risk.stablecoins:
                     v = b.total
@@ -142,6 +148,8 @@ class TradingCoordinator:
                     v = b.total * px if px is not None else ZERO
                 values[asset] = values.get(asset, ZERO) + v
                 total += v
+                ex_total += v
+            self.exchange_equity[name] = ex_total
         if total > 0:
             self.last_equity = total
         return total, values
@@ -195,8 +203,8 @@ class TradingCoordinator:
                     )
             ctx = MarketContext(
                 market=eng.market(sig.symbol),
-                ticker=feed.tickers.get(sig.symbol) if feed else None,
-                book=feed.books.get(sig.symbol) if feed else None,
+                ticker=feed.fresh_ticker(sig.symbol) if feed else None,  # stale -> None
+                book=feed.fresh_book(sig.symbol) if feed else None,
                 candles=self.frame(sig.exchange, sig.symbol, sig.timeframe),
                 closes=closes,
             )
@@ -348,6 +356,25 @@ class TradingCoordinator:
         await self.persist()
         if self.kill_switch.close_positions_requested:
             await self.close_all("kill_switch")
+        if self.ops is not None:
+            await self.ops_tick(self.ops)
+
+    async def ops_tick(self, ops: OpsService) -> None:
+        """§5.13 checks; close positions in pairs being delisted (if configured)."""
+        await ops.maybe_check(dict(self.exchange_equity))
+        open_pos = await self.repo.open_positions()
+        doomed = dict(
+            ops.positions_to_close([(p.position_id, p.exchange, p.symbol) for p in open_pos])
+        )
+        for pos in open_pos:
+            if pos.position_id in doomed:
+                _log.warning(
+                    "closing_delisted", position=pos.position_id, reason=doomed[pos.position_id]
+                )
+                try:
+                    await self._exit(pos, pos.amount, "delisting")
+                except ExchangeAdapterError as exc:
+                    _log.error("delisting_close_failed", position=pos.position_id, error=str(exc))
 
     async def run(self, stop: asyncio.Event) -> None:
         while not stop.is_set():

@@ -72,11 +72,11 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Telegram bildirimleri + komutlar
 - [x] FastAPI panel (token korumalı), kill switch butonu, analiz raporları sayfası
 
-## Aşama 7.5 — Operasyonel güvenlik ağları (spec §5.13)
-- [ ] Kademeli sermaye (live_capital_cap) ve gölge mod
-- [ ] Borsa duyuru takibi, stablecoin depeg kontrolü, borsa başına bakiye tavanı
-- [ ] Backtest önyargı kontrolleri, düşük likidite modu, config değişiklik günlüğü
-- [ ] Kaos testleri
+## Aşama 7.5 — Operasyonel güvenlik ağları (spec §5.13) ✅
+- [x] Kademeli sermaye (live_capital_cap) ve gölge mod
+- [x] Borsa duyuru takibi, stablecoin depeg kontrolü, borsa başına bakiye tavanı
+- [x] Backtest önyargı kontrolleri, düşük likidite modu, config değişiklik günlüğü
+- [x] Kaos testleri
 
 ## Aşama 8 — Paper çalıştırma ve değerlendirme
 - [ ] VPS'te sabit IP ile 2 hafta paper/testnet çalıştırma

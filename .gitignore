@@ -16,3 +16,4 @@ deploy/**/*.key
 deploy/**/wg0.conf
 deploy/local/wg_confs/*
 !deploy/local/wg_confs/README.md
+config/announcements.yaml

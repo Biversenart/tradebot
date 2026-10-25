@@ -153,5 +153,6 @@ def test_alembic_migration_matches_models(tmp_path: Path) -> None:
         "arbitrage_opportunities",
         "risk_events",
         "equity_curve",
+        "config_changes",
     ):
         assert name in tables  # spec §5.8
