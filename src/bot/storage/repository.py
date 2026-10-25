@@ -142,15 +142,36 @@ class Repository:
                 q = q.where(PositionRow.exchange == exchange)
             return list((await s.execute(q)).scalars())
 
-    async def closed_positions(self, limit: int = 100) -> list[PositionRow]:
+    async def closed_positions(
+        self, limit: int = 100, symbol: str | None = None, strategy: str | None = None
+    ) -> list[PositionRow]:
+        async with self._sessions() as s:
+            q = select(PositionRow).where(PositionRow.status == "closed")
+            if symbol:
+                q = q.where(PositionRow.symbol == symbol)
+            if strategy:
+                q = q.where(PositionRow.strategy == strategy)
+            q = q.order_by(PositionRow.closed_at.desc()).limit(limit)
+            return list((await s.execute(q)).scalars())
+
+    async def positions_for_symbol(self, symbol: str, limit: int = 200) -> list[PositionRow]:
         async with self._sessions() as s:
             q = (
                 select(PositionRow)
-                .where(PositionRow.status == "closed")
-                .order_by(PositionRow.closed_at.desc())
+                .where(PositionRow.symbol == symbol)
+                .order_by(PositionRow.opened_at.desc())
                 .limit(limit)
             )
             return list((await s.execute(q)).scalars())
+
+    async def filled_orders(self, position_ids: list[str]) -> list[OrderRow]:
+        """Orders with fills for the given positions (chart markers)."""
+        if not position_ids:
+            return []
+        async with self._sessions() as s:
+            q = select(OrderRow).where(OrderRow.position_id.in_(position_ids))
+            # amounts are stored as text: compare as Decimal, not in SQL
+            return [o for o in (await s.execute(q)).scalars() if o.filled > 0]
 
     # ---------------------------------------------------------------- analytics
     async def save_signal(self, signal: Signal) -> None:
@@ -258,6 +279,15 @@ class Repository:
                     timestamp=_now(),
                 )
             )
+
+    async def recent_arbitrage(self, limit: int = 100) -> list[ArbitrageOpportunityRow]:
+        async with self._sessions() as s:
+            q = (
+                select(ArbitrageOpportunityRow)
+                .order_by(ArbitrageOpportunityRow.timestamp.desc())
+                .limit(limit)
+            )
+            return list((await s.execute(q)).scalars())
 
     # ---------------------------------------------------------------- key/value state
     async def get_state(self, key: str) -> dict[str, Any] | None:
