@@ -13,6 +13,7 @@ cp config/config.example.yaml config/config.yaml
 bot config-check                           # config + .env doğrulama, etkin modu gösterir
 bot net-check                              # dış IP + borsa erişim testi
 bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01   # geçmiş veri → data/ohlcv/*.parquet
+bot analyze BTC/USDT                       # MTF Türkçe rapor + plotly grafik → reports/analysis/
 bot run                                    # servisleri başlatır
 ```
 
@@ -52,4 +53,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 0 — İskelet (config + çift onay, JSON log + maskeleme, Decimal çekirdek modeller, EventBus, CI, Docker)
 - ✅ Aşama 1 — Sabit IP: egress (proxy/WireGuard), fail-closed IP doğrulama, restricted-location testi, heartbeat, kill-switch'li compose, VPS/lokal kurulum rehberleri
 - ✅ Aşama 2 — ExchangeAdapter, Binance (spot + futures testnet/demo), BTCTurk, PaperExchange (derinliğe göre dolum), market data (WS akışları, mum oluşturucu, warm-up, boşluk doldurma), `bot data download` (Parquet)
-- ⏭️ Sıradaki: Aşama 3 — Analiz motoru
+- ✅ Aşama 3 — Analiz motoru: göstergeler, rejim, yapı (BOS/CHoCH), bölgeler, hacim profili, uyumsuzluk, formasyonlar, confluence, TradePlan, `bot analyze`
+- ⏭️ Sıradaki: Aşama 4 — Stratejiler ve backtest

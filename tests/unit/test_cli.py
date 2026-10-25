@@ -83,3 +83,55 @@ def test_net_check_testnet_blocks_without_proxy(tmp_path: Path) -> None:
     assert "unreachable" in result.stdout
     assert "HAYIR" in result.stdout
     assert "topsecret" not in result.output
+
+
+def test_analyze_offline(tmp_path: Path) -> None:
+    from bot.marketdata.history import parquet_path
+    from tests.fixtures.loader import synthetic_1h
+
+    p = parquet_path(tmp_path / "data", "binance", "BTC/USDT", "1h")
+    p.parent.mkdir(parents=True)
+    synthetic_1h().iloc[:900].to_parquet(p)
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("marketdata: {enabled: false}\n", encoding="utf-8")
+    out = tmp_path / "out"
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "BTC/USDT",
+            "--offline",
+            "--data",
+            str(tmp_path / "data"),
+            "--out",
+            str(out),
+            "-c",
+            str(cfg),
+            "--env-file",
+            str(tmp_path / "none.env"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Teknik Analiz Raporu" in result.stdout
+    assert len(list(out.glob("*.md"))) == 1 and len(list(out.glob("*.html"))) == 1
+
+
+def test_analyze_without_data(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "ETH/USDT",
+            "--offline",
+            "--data",
+            str(tmp_path),
+            "--out",
+            str(tmp_path),
+            "--env-file",
+            str(tmp_path / "none.env"),
+            "-c",
+            str(tmp_path / "none.yaml"),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "veri yok" in result.output

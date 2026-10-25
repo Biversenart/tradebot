@@ -36,3 +36,10 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Swing tespiti | Fraktal (N=3); swing yalnızca i+N'de onaylanır, BOS/CHoCH buna göre (look-ahead yok) | Canlı ve backtest aynı davranır |
 | 2026-10-02 | Bölge gücü | 0.4·dokunma + 0.3·yakınlık(recency) + 0.3·hacim (normalize, 0–100) | Basit, açıklanabilir puan |
 | 2026-10-02 | Hacim profili | Mum hacmi high–low aralığına eşit dağıtılır; value area POC'tan komşu büyük bin eklenerek %70 | Standart TPO/VP yaklaşımı |
+| 2026-10-02 | TF eğilimi (bias) | close>EMA200, EMA50>EMA200, yapı trendi, rejim → toplam ≥2 yükseliş, ≤−2 düşüş | Tek göstergeye bağımlı olmayan basit oylama |
+| 2026-10-02 | Setup zaman dilimi | İlk mevcut orta vade TF (4h → 1h), yoksa kısa, yoksa uzun | Spec: orta vade = setup ve yapı |
+| 2026-10-02 | Üst TF çelişkisi | Puan × `htf_conflict_penalty` (0.5); eşik (70) altında kalırsa plan yok | Spec §5.3.a "puanı düşer veya reddedilir" |
+| 2026-10-02 | Stop seviyesi | Girişin altındaki EN YAKIN swing low (short: üstündeki en yakın swing high) − 0.5 ATR; > 4 ATR ise ret | Yapısal ama makul mesafeli stop |
+| 2026-10-02 | Önündeki bölge | Güç ≥50 karşı bölge, minimum 2R hedefinden önce ise plan reddedilir | "Yetersiz alan" filtresi |
+| 2026-10-02 | Analiz verisi | Önce Parquet; yoksa alt TF'den yeniden örnekleme (UTC, hafta Pazartesi); yoksa borsadan warm-up | Tek 1h dosyasıyla 4h/1d/1w analizi mümkün |
+| 2026-10-02 | Grafik | plotly HTML, plotly.js CDN'den (dosya ~60 KB) | Gömülü sürüm ~4.5 MB olurdu |

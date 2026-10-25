@@ -30,7 +30,7 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Market data: WS akışları, mum oluşturucu, warm-up, boşluk doldurma
 - [x] Geçmiş veri indirme komutu: `bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01` (Parquet)
 
-## Aşama 3 — Analiz motoru (en kritik aşama)
+## Aşama 3 — Analiz motoru (en kritik aşama) ✅
 - [x] Göstergeler (EMA, RSI, MACD, StochRSI, Bollinger, ATR, ADX, OBV, VWAP) + birim testleri (bilinen değerlerle)
 - [x] Rejim tespiti
 - [x] Swing noktaları, HH/HL sınıflandırma, BOS/CHoCH
@@ -38,9 +38,9 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Hacim profili (POC/VAH/VAL), anchored VWAP
 - [x] Divergence tespiti
 - [x] Mum ve grafik formasyonları
-- [ ] Confluence puanlayıcı (ağırlıklar config'den)
-- [ ] `TradePlan` üretici (giriş bölgesi, yapısal SL + ATR tamponu, TP1-3, R:R filtresi, geçersizlik)
-- [ ] `bot analyze <SYMBOL>` → Türkçe rapor + plotly HTML grafik
+- [x] Confluence puanlayıcı (ağırlıklar config'den)
+- [x] `TradePlan` üretici (giriş bölgesi, yapısal SL + ATR tamponu, TP1-3, R:R filtresi, geçersizlik)
+- [x] `bot analyze <SYMBOL>` → Türkçe rapor + plotly HTML grafik
 
 ## Aşama 4 — Stratejiler ve backtest
 - [ ] `BaseStrategy`, 5 strateji (spec §5.4)
