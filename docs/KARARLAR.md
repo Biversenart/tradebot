@@ -71,6 +71,10 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Leg risk | Cross: iki bacak eşzamanlı IOC-limit (en derin fiyat), kalan iptal; dolum farkı piyasa emriyle hedge (fazla alış → sat, eksik alış → geri al, satış geliriyle sınırlı). Üçgen: sıralı; bir bacak düşerse tamamlanan bacaklar tersine çevrilip başlangıç varlığına dönülür | Net envanteri düz tut |
 | 2026-10-02 | Hedge onayı | Hedge emirleri reduce-only olarak `assess_exit`'ten geçer (kill switch altında da izinli) | Riski azaltan işlem engellenmemeli |
 | 2026-10-02 | Rebalans | Bir borsada base/quote payı %20 altına düşerse uyarı; transfer daima manuel | Kural 3: para çekme yok |
+| 2026-10-02 | Telegram istemcisi | Bot API'ye doğrudan (aiohttp, egress üzerinden) uzun yoklama; ek kütüphane yok. Yalnızca `TELEGRAM_CHAT_ID`'den gelen komutlar işlenir | Az bağımlılık; yetkisiz sohbet botu durduramaz |
+| 2026-10-02 | Panel kimlik doğrulama | Bearer token (API) veya giriş sonrası sunucu tarafı oturum çerezi (HttpOnly, SameSite=Strict) + double-submit CSRF; 60 sn'de 10 hatalı giriş → 429; token < 16 karakter → panel açılmaz | Kill switch/resume uçları CSRF'e karşı korunmalı |
+| 2026-10-02 | Panel ağ erişimi | Varsayılan `127.0.0.1`; Docker'da `api.host: 0.0.0.0` (port compose'da yalnızca 127.0.0.1'e yayınlanır) | Panel internete açılmaz |
+| 2026-10-02 | Strateji aç/kapa | Panelden kapatılan strateji mumları almaya devam eder (göstergeler sıcak kalır) ama sinyal üretmez; yeniden başlatmada config'e döner | Güvenli ve basit; kalıcı değişiklik config'den |
 
 ## Boyutlama formülleri (Aşama 5)
 

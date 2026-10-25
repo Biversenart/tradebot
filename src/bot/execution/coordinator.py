@@ -23,7 +23,7 @@ from bot.config.schema import AppConfig
 from bot.core.aio import wait_or_stop
 from bot.core.clock import Clock, SystemClock
 from bot.core.event_bus import EventBus
-from bot.core.events import CandleEvent, RiskAlert, SignalEvent
+from bot.core.events import CandleEvent, PositionEvent, RiskAlert, SignalEvent
 from bot.core.models import Candle, OrderIntent, OrderType, PositionSide, Side
 from bot.exchanges.errors import ExchangeAdapterError
 from bot.execution.engine import ExecutionEngine
@@ -237,8 +237,26 @@ class TradingCoordinator:
             return
         before = pos.realized_pnl
         await self.engines[pos.exchange].reduce(pos, decision.approved, reason, new_stop)
+        await self._publish(pos, "closed" if pos.status == "closed" else "reduced", None, reason)
         if pos.status == "closed":
             await self._on_closed(pos, pos.realized_pnl - before)
+
+    async def _publish(
+        self, pos: PositionRow, kind: str, price: Decimal | None, reason: str
+    ) -> None:
+        await self.bus.publish(
+            PositionEvent(
+                kind=kind,
+                position_id=pos.position_id,
+                exchange=pos.exchange,
+                symbol=pos.symbol,
+                side=pos.side,
+                amount=pos.amount if kind != "closed" else pos.initial_amount,
+                price=price,
+                realized_pnl=pos.realized_pnl,
+                reason=reason,
+            )
+        )
 
     async def _on_closed(self, pos: PositionRow, _last_leg: Decimal) -> None:
         risk_amt = abs(pos.entry_price - pos.initial_stop) * pos.initial_amount
@@ -318,6 +336,7 @@ class TradingCoordinator:
             for pos in await self.repo.open_positions(eng.adapter.name):
                 try:
                     if await eng.sync_stop(pos):
+                        await self._publish(pos, "closed", None, pos.close_reason or "stop")
                         await self._on_closed(pos, ZERO)
                 except ExchangeAdapterError as exc:
                     _log.warning("sync_stop_failed", position=pos.position_id, error=str(exc))

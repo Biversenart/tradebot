@@ -68,9 +68,9 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Rebalans uyarıları
 - [x] (Opsiyonel) TRY köprüsü (`fx_symbols`) — funding rate henüz yok
 
-## Aşama 7 — Bildirim ve panel
-- [ ] Telegram bildirimleri + komutlar
-- [ ] FastAPI panel (token korumalı), kill switch butonu, analiz raporları sayfası
+## Aşama 7 — Bildirim ve panel ✅
+- [x] Telegram bildirimleri + komutlar
+- [x] FastAPI panel (token korumalı), kill switch butonu, analiz raporları sayfası
 
 ## Aşama 7.5 — Operasyonel güvenlik ağları (spec §5.13)
 - [ ] Kademeli sermaye (live_capital_cap) ve gölge mod

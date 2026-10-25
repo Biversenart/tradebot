@@ -176,6 +176,29 @@ class EgressHttpSession:
                 "doğrudan bağlantıya geri dönülmedi."
             ) from exc
 
+    async def request_json(
+        self, method: str, url: str, payload: dict[str, object] | None = None
+    ) -> tuple[int, dict[str, object]]:
+        session = self._ensure_session()
+        proxy = self._egress.proxy
+        http_proxy = proxy.url.get_secret_value() if proxy and not proxy.is_socks else None
+        try:
+            async with session.request(method, url, json=payload, proxy=http_proxy) as resp:
+                data = await resp.json(content_type=None)
+                return resp.status, data if isinstance(data, dict) else {"result": data}
+        except (
+            aiohttp.ClientError,
+            OSError,
+            TimeoutError,
+            ValueError,
+            ProxyError,
+            ProxyConnectionError,
+            ProxyTimeoutError,
+        ) as exc:
+            raise EgressUnavailableError(
+                f"Egress üzerinden istek başarısız ({type(exc).__name__})."
+            ) from exc
+
     async def get_text(self, url: str) -> str:
         status, body = await self.request_text("GET", url)
         if status >= 400:

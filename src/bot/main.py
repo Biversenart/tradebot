@@ -12,11 +12,7 @@ import pandas as pd
 import typer
 
 from bot import __version__
-from bot.analysis.chart import build_figure, write_chart
-from bot.analysis.data import load_frames
-from bot.analysis.engine import analyze_symbol
-from bot.analysis.plan import best_plan
-from bot.analysis.report import render_report
+from bot.analysis.service import AnalysisUnavailableError, run_analysis
 from bot.backtest.engine import Backtester
 from bot.backtest.metrics import compute_metrics
 from bot.backtest.runner import NoDataError, default_out_dir, load_history, run_report
@@ -28,7 +24,7 @@ from bot.core.timeframes import timeframe_seconds
 from bot.exchanges.errors import ExchangeAdapterError
 from bot.exchanges.factory import build_public_adapter
 from bot.log import configure_logging
-from bot.marketdata.history import download_to_parquet, parquet_path, safe_symbol, utc_date
+from bot.marketdata.history import download_to_parquet, parquet_path, utc_date
 from bot.marketdata.synthetic import generate_ohlcv
 from bot.net.egress import resolve_egress
 from bot.runtime import BotRuntime
@@ -180,51 +176,13 @@ async def _analyze(
     out_dir: Path,
     offline: bool,
 ) -> int:
-    cfg = settings.config.analysis
-    tfs = [*cfg.timeframes.long, *cfg.timeframes.mid, *cfg.timeframes.short]
-    adapter = None
-    if not offline:
-        ex_cfg = settings.config.exchanges.get(exchange) or ExchangeConfig(enabled=True)
-        adapter = build_public_adapter(exchange, ex_cfg, resolve_egress(settings), testnet=False)
     try:
-        if adapter is not None:
-            await adapter.load_markets()
-        frames, sources = await load_frames(
-            symbol,
-            tfs,
-            exchange=exchange,
-            data_root=data_root,
-            bars=cfg.analysis_bars,
-            adapter=adapter,
-        )
-    finally:
-        if adapter is not None:
-            await adapter.close()
-    if not frames:
-        typer.secho(
-            f"{symbol} için veri yok. Önce: bot data download --symbol {symbol} --since ...",
-            fg=typer.colors.RED,
-            err=True,
-        )
+        out = await run_analysis(settings, symbol, exchange, data_root, out_dir, offline)
+    except AnalysisUnavailableError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
         return 1
-    mtf = analyze_symbol(frames, symbol, exchange, cfg)
-    if mtf.setup_timeframe() is None:
-        typer.secho("Analiz için yeterli mum yok.", fg=typer.colors.RED, err=True)
-        return 1
-    best, results = best_plan(mtf, cfg)
-    report = render_report(mtf, results, best, sources)
-    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M")
-    base = out_dir / f"{safe_symbol(symbol)}_{stamp}"
-    md_path = base.with_suffix(".md")
-    md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_path.write_text(report, encoding="utf-8")
-    setup_tf = mtf.setup_timeframe()
-    assert setup_tf is not None  # noqa: S101 - checked above
-    shown = best or max(results, key=lambda r: r.score.total, default=None)
-    fig = build_figure(mtf.frames[setup_tf], shown, f"{symbol} {setup_tf}", cfg.chart_bars)
-    html_path = write_chart(fig, base.with_suffix(".html"))
-    typer.echo(report)
-    typer.echo(f"Rapor: {md_path}\nGrafik: {html_path}")
+    typer.echo(out.report)
+    typer.echo(f"Rapor: {out.md_path}\nGrafik: {out.html_path}")
     return 0
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from bot.core.event_bus import EventBus
 from bot.core.events import CandleEvent, SignalEvent
 from bot.core.models import Signal
@@ -12,9 +14,15 @@ _log = get_logger(__name__)
 
 
 class StrategyRunner:
-    def __init__(self, bus: EventBus, strategies: list[BaseStrategy]) -> None:
+    def __init__(
+        self,
+        bus: EventBus,
+        strategies: list[BaseStrategy],
+        allow: Callable[[BaseStrategy], bool] = lambda _s: True,
+    ) -> None:
         self.bus = bus
         self.strategies = strategies
+        self.allow = allow
         self.last_signals: list[Signal] = []
         bus.subscribe(CandleEvent, self.on_candle)
 
@@ -25,7 +33,9 @@ class StrategyRunner:
         for s in self.strategies:
             if s.symbol != c.symbol or s.timeframe != c.timeframe:
                 continue
-            s.on_candle(c)
+            s.on_candle(c)  # keep indicators warm even while disabled
+            if not self.allow(s):
+                continue
             try:
                 signals = s.generate_signals()
             except Exception:

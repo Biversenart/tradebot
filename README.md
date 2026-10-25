@@ -12,6 +12,7 @@ cp .env.example .env                       # sırlar yalnızca burada; ASLA comm
 cp config/config.example.yaml config/config.yaml
 bot config-check                           # config + .env doğrulama, etkin modu gösterir
 bot net-check                              # dış IP + borsa erişim testi
+# Panel: http://127.0.0.1:8080 (API_AUTH_TOKEN ile giriş) · Telegram: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
 bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01   # geçmiş veri → data/ohlcv/*.parquet
 bot analyze BTC/USDT                       # MTF Türkçe rapor + plotly grafik → reports/analysis/
 bot backtest report -s BTC/USDT -s ETH/USDT -s SOL/USDT --since 2022-01-01   # walk-forward + §9 özeti
@@ -63,4 +64,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 4 — 5 strateji + sinyal birleştirici (canlı/backtest aynı sınıflar), olay güdümlü backtest, metrikler, walk-forward + parametre taraması, HTML rapor, çıkış yönetimi
 - ✅ Aşama 5 — RiskManager (ApprovedIntent), büyüme odaklı boyutlama, kill switch, portföy riski; emir yürütme (borsa tarafı zorunlu stop, idempotent id, kısmi dolum), reconciliation, SQLAlchemy + alembic, `bot run` ile uçtan uca paper/testnet akışı
 - ✅ Aşama 6 — Arbitraj: cross-exchange (derinlik, ücret, kayma, gecikme, TRY köprüsü) ve üçgen tarayıcılar, leg-risk hedge'li paper yürütme, rebalans uyarıları; fırsatlar DB'ye loglanır
-- ⏭️ Sıradaki: Aşama 7 — Telegram ve panel
+- ✅ Aşama 7 — Telegram (bildirim + /durum /pozisyonlar /analiz /durdur /devam, günlük özet) ve token korumalı web panel (kill switch butonu, equity, pozisyonlar, strateji aç/kapa, analiz raporları)
+- ⏭️ Sıradaki: Aşama 7.5 — Operasyonel güvenlik ağları
