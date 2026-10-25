@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kripto bot paneli</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/vendor/plotly.min.js" defer></script>
+  <script src="/static/app.js" type="module"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚡ Kripto bot</div>
+      <nav id="nav">
+        <a href="#/" data-page="overview">📊 Genel bakış</a>
+        <a href="#/pozisyonlar" data-page="positions">📈 Pozisyonlar</a>
+        <a href="#/grafik" data-page="chart">🕯️ Grafik</a>
+        <a href="#/stratejiler" data-page="strategies">🧠 Stratejiler</a>
+        <a href="#/risk" data-page="risk">🛡️ Risk</a>
+        <a href="#/arbitraj" data-page="arbitrage">🔀 Arbitraj</a>
+        <a href="#/backtest" data-page="backtest">🧪 Backtest &amp; veri</a>
+        <a href="#/analiz" data-page="analysis">🔍 Analiz</a>
+        <a href="#/olaylar" data-page="events">🔔 Olaylar</a>
+        <a href="#/ayarlar" data-page="settings">⚙️ Ayarlar</a>
+      </nav>
+      <div class="sidebar-foot">
+        <button class="btn ghost small" id="theme-toggle" type="button">🌓 Tema</button>
+        <a class="btn ghost small" href="/logout">Çıkış</a>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <button class="btn ghost icon" id="menu-toggle" type="button" aria-label="Menü">☰</button>
+        <h1 id="page-title">Genel bakış</h1>
+        <div class="status-pills" id="status-pills"></div>
+        <div class="top-actions">
+          <button class="btn success" id="resume-btn" type="button" hidden title="Kill switch'i kaldır">▶ Devam</button>
+          <button class="btn danger kill" id="kill-btn" type="button" title="Yeni emirleri durdur">⛔ KILL SWITCH</button>
+        </div>
+      </header>
+      <div id="banner" class="banner" hidden></div>
+      <main id="view" class="view" aria-live="polite"></main>
+    </div>
+  </div>
+  <div id="toasts" class="toasts"></div>
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <p id="confirm-text"></p>
+      <div class="row end">
+        <button value="cancel" class="btn ghost">Vazgeç</button>
+        <button value="ok" class="btn primary" id="confirm-ok">Onayla</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

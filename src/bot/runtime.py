@@ -4,23 +4,28 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import timedelta
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import uvicorn
 
 from bot import __version__
 from bot.analysis.service import AnalysisOutput, run_analysis
 from bot.api.app import create_app
+from bot.api.jobs import JobRunner
+from bot.api.views import PanelData
 from bot.arbitrage.service import arbitrage_symbols
 from bot.config import Mode, Settings
+from bot.config.schema import ExchangeConfig
 from bot.control import BotControl
 from bot.core.event_bus import EventBus
 from bot.core.events import AlertLevel, RiskAlert
 from bot.exchanges.base import ExchangeAdapter
 from bot.exchanges.errors import ExchangeAdapterError
-from bot.exchanges.factory import build_exchanges
+from bot.exchanges.factory import build_exchanges, build_public_adapter
 from bot.log import get_logger
 from bot.marketdata.feed import MarketDataFeed
+from bot.marketdata.history import download_to_parquet
 from bot.net.egress import EgressHttpSession, resolve_egress
 from bot.net.errors import EgressMisconfiguredError
 from bot.net.exchange_access import check_exchange_access, ping_url
@@ -82,6 +87,7 @@ class BotRuntime:
 
         self.trading: TradingStack | None = None
         self.control: BotControl | None = None
+        self.panel_data: PanelData | None = None
         self._panel: uvicorn.Server | None = None
         self._ready_feeds: list[MarketDataFeed] = []
         self.heartbeat: Heartbeat | None = None
@@ -209,9 +215,16 @@ class BotRuntime:
             if token is None or len(token.get_secret_value()) < 16:
                 _log.warning("panel_disabled_missing_or_weak_token")
             else:
+                panel = PanelData(
+                    control,
+                    coord,
+                    JobRunner(cfg, download=self._download_history),
+                    self.bus,
+                )
+                self.panel_data = panel
                 server = uvicorn.Server(
                     uvicorn.Config(
-                        create_app(control, token),
+                        create_app(control, token, panel),
                         host=cfg.api.host,
                         port=cfg.api.port,
                         log_config=None,
@@ -231,6 +244,27 @@ class BotRuntime:
                 tasks.append(asyncio.create_task(serve(), name="panel"))
                 tasks.append(asyncio.create_task(stopper(), name="panel-stop"))
                 _log.info("panel_started", host=cfg.api.host, port=cfg.api.port)
+
+    async def _download_history(
+        self,
+        exchange: str,
+        symbols: list[str],
+        timeframes: list[str],
+        since: datetime,
+        until: datetime | None,
+    ) -> list[str]:
+        """Panel data download: public API, always through the egress (no keys)."""
+        ex_cfg = self.settings.config.exchanges.get(exchange) or ExchangeConfig(enabled=True)
+        adapter = build_public_adapter(exchange, ex_cfg, self.egress, testnet=False)
+        lines: list[str] = []
+        async with adapter:
+            for symbol in symbols:
+                for tf in timeframes:
+                    path, n = await download_to_parquet(
+                        adapter, symbol, tf, since, Path("data"), until
+                    )
+                    lines.append(f"{symbol} {tf}: {n} yeni mum -> {path}")
+        return lines
 
     async def run(self, stop: asyncio.Event) -> None:
         bus_task = asyncio.create_task(self.bus.run(), name="event-bus")
