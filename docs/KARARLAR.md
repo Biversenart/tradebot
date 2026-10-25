@@ -53,3 +53,25 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Overfitting uyarıları | OOS PF < 0.7×IS PF; IS beklenti>0 ama OOS≤0; parametre kararsızlığı (>%70 fold farklı); tepe seçimi (en iyi > 2×medyan); OOS işlem < min | Spec §5.9 |
 | 2026-10-02 | Grid/DCA | Yalnızca long; grid sadece range rejiminde; DCA güçlü düşüşte durur; her alımda koruyucu stop | Spot uyumu ve kural 9 |
 | 2026-10-02 | Sentetik veri | `bot data synthetic` → borsa adı `synthetic` | Ağsız ortamda pipeline doğrulaması; gerçek veriyle karışmaz |
+| 2026-10-02 | Büyüme odaklı boyutlama | Aşağıdaki "Boyutlama formülleri" bölümü; sabit boyutla karşılaştırma `docs/BOYUTLAMA.md` | Spec §5.6, Prompt 5 |
+| 2026-10-02 | Duraklatılan strateji×coin | 168 saat bekleme sonrası pencere sıfırlanıp yeniden denenir | İşlem yoksa yeni kanıt da yok; kalıcı duraklatma iyi stratejiyi de öldürüyordu |
+| 2026-10-02 | Kill switch kalıcılığı | Durum `KillSwitchState.to_dict()` ile saklanır, yeniden başlatmada geri yüklenir | Yeniden başlatma kill switch'i kaldırmamalı |
+| 2026-10-02 | Emir onayı | `ApprovedIntent` yalnızca RiskManager'ın özel jetonuyla oluşturulabilir; yürütme yalnızca onu kabul eder | Kural 4'ün tip seviyesinde garantisi |
+
+## Boyutlama formülleri (Aşama 5)
+
+```
+risk_% = taban × kalite × drawdown × kayıp_serisi × olay × dağılım       (≤ taban × 1.5 tavanı, ≤ ¼ Kelly)
+miktar = işlem_sermayesi × risk_% / 100 / |giriş − stop|                   (notional ≤ işlem_sermayesi × %100)
+işlem_sermayesi = (bileşik ? güncel bakiye : başlangıç bakiyesi) − kilitli_kâr_rezervi
+```
+- **taban** = `risk.risk_per_trade_pct` (%1).
+- **kalite**: confluence ≥ 85 → ×1.5; < 75 → ×0.5; arası ×1.
+- **drawdown**: dd = (zirve − bakiye)/zirve. dd ≥ %5 → ×0.5; altında doğrusal toparlanma: `0.5 + 0.5 × (1 − dd/5)` (zirvede 1).
+- **kayıp serisi**: art arda ≥3 kayıp → ×0.5 (bir kazanç sıfırlar).
+- **olay**: config'deki olay penceresinde (FOMC, CPI, unlock) → pencerenin `risk_factor`'ü.
+- **dağılım** (strateji×coin, son 30 işlem, en az 10): beklenti < 0R → 0 (168 saat duraklatma); pozitifse `1 + min(1, beklenti/0.5R) × 0.25`.
+- **¼ Kelly** (isteğe bağlı, ≥100 işlem): `f* = W − (1−W)/(ortKazançR/ortKayıpR)`; risk_% ≤ `0.25 × f* × 100`; f* ≤ 0 → duraklat.
+- **Kâr kilitleme**: bakiye son kilit seviyesinin %20 üstüne her çıktığında kazancın %25'i rezerve edilir (iç muhasebe; para çekme yok).
+- **Volatilite**: stop ATR/yapı tabanlı olduğundan geniş stop = küçük pozisyon (aynı risk %).
+- Sabit karşılaştırma tabanı: her işlemde güncel bakiyenin %1'i risk.

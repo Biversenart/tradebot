@@ -50,13 +50,13 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] Çıkış yönetimi: kısmi TP, başabaşa stop, trailing, zaman bazlı çıkış
 
 ## Aşama 5 — Risk ve emir yürütme
-- [ ] RiskManager (spec §5.6 tüm kontroller)
-- [ ] İşlem öncesi risk raporu (risk_score, korelasyon, volatilite, likidite)
-- [ ] Portföy riski: korelasyon matrisi, VaR/CVaR, risk-at-stop
-- [ ] Büyüme odaklı boyutlama: bileşik %, volatilite ayarı, kalite çarpanı, ¼ Kelly, drawdown'da risk azaltma, kâr kilitleme
-- [ ] Strateji/coin performans takibi ve otomatik sermaye dağılımı
+- [x] RiskManager (spec §5.6 tüm kontroller)
+- [x] İşlem öncesi risk raporu (risk_score, korelasyon, volatilite, likidite)
+- [x] Portföy riski: korelasyon matrisi, VaR/CVaR, risk-at-stop
+- [x] Büyüme odaklı boyutlama: bileşik %, volatilite ayarı, kalite çarpanı, ¼ Kelly, drawdown'da risk azaltma, kâr kilitleme
+- [x] Strateji/coin performans takibi ve otomatik sermaye dağılımı
 - [ ] Borsa tarafı stop emirleri (her pozisyon için zorunlu)
-- [ ] Kill switch (zarar limiti, drawdown, hata sayısı, IP uyuşmazlığı)
+- [x] Kill switch (zarar limiti, drawdown, hata sayısı, IP uyuşmazlığı)
 - [ ] Execution engine: limit/market/stop/OCO, kısmi dolum, timeout, idempotent client_order_id
 - [ ] Reconciliation (yeniden başlatmada durum eşitleme)
 - [ ] Depolama: SQLAlchemy modelleri + alembic migration

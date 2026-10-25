@@ -6,6 +6,7 @@ never silently fall back to defaults.
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Literal
@@ -269,6 +270,8 @@ class QualityMultiplierConfig(_Strict):
     # Spec §5.6: high-quality setups may raise risk to at most 1.5x.
     high_score: Decimal = Field(default=Decimal("1.5"), gt=0, le=Decimal("1.5"))
     low_score: Decimal = Field(default=Decimal("0.5"), gt=0, le=1)
+    high_threshold: Decimal = Field(default=Decimal(85), ge=0, le=100)  # score >= -> high
+    low_threshold: Decimal = Field(default=Decimal(75), ge=0, le=100)  # score < -> low
 
 
 class KellyConfig(_Strict):
@@ -298,6 +301,10 @@ class AutoAllocationConfig(_Strict):
     enabled: bool = True
     lookback_trades: int = Field(default=30, gt=0)
     pause_if_expectancy_below: Decimal = Decimal(0)
+    min_trades: int = Field(default=10, ge=1)  # judge a strategy/coin only after this many
+    max_multiplier: Decimal = Field(default=Decimal("1.25"), ge=1, le=Decimal("1.5"))
+    # paused combinations get a fresh trial after this cool-down (no trades = no new evidence)
+    pause_hours: int = Field(default=168, ge=1)
 
 
 class GrowthConfig(_Strict):
@@ -308,6 +315,16 @@ class GrowthConfig(_Strict):
     loss_streak: LossStreakConfig = Field(default_factory=LossStreakConfig)
     profit_lock: ProfitLockConfig = Field(default_factory=ProfitLockConfig)
     auto_allocation: AutoAllocationConfig = Field(default_factory=AutoAllocationConfig)
+
+
+class EventWindow(_Strict):
+    """Optional macro/event calendar entry (FOMC, CPI, token unlock...)."""
+
+    label: str
+    start: datetime
+    end: datetime
+    risk_factor: Decimal = Field(default=Decimal("0.5"), ge=0, le=1)
+    symbols: tuple[str, ...] = ()  # empty = all
 
 
 class RiskConfig(_Strict):
@@ -324,6 +341,12 @@ class RiskConfig(_Strict):
     on_kill_switch: Literal["close_all", "keep_positions"] = "close_all"
     max_correlation: Decimal = Field(default=Decimal("0.8"), gt=0, le=1)
     var_confidence: Decimal = Field(default=Decimal("0.95"), gt=0, lt=1)
+    correlation_lookback_bars: int = Field(default=720, ge=30)
+    correlation_reduce_factor: Decimal = Field(default=Decimal("0.5"), gt=0, le=1)
+    max_correlated_positions: int = Field(default=2, ge=1)
+    min_depth_ratio: Decimal = Field(default=Decimal(3), gt=0)  # depth within 0.5% vs notional
+    stablecoins: tuple[str, ...] = ("USDT", "USDC", "FDUSD", "DAI", "TUSD")
+    event_windows: tuple[EventWindow, ...] = ()
     growth: GrowthConfig = Field(default_factory=GrowthConfig)
 
     @model_validator(mode="after")
