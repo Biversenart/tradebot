@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 import pandas as pd
@@ -42,3 +43,18 @@ def from_closes(closes: list[float], spread: float = 1.0, **kw: object) -> pd.Da
     highs = [max(o, c) + spread / 2 for o, c in zip(opens, closes, strict=True)]
     lows = [min(o, c) - spread / 2 for o, c in zip(opens, closes, strict=True)]
     return frame(opens, highs, lows, closes, **kw)  # type: ignore[arg-type]
+
+
+def zigzag(pivots: list[float], steps: int = 5, spread: float = 1.0) -> pd.DataFrame:
+    """Linear path through `pivots` (`steps` bars per leg); highs/lows = close ± spread/2.
+
+    Pivot k sits at bar index k * steps.
+    """
+    closes: list[float] = []
+    for a, b in pairwise(pivots):
+        closes += [a + (b - a) * i / steps for i in range(steps)]
+    closes.append(pivots[-1])
+    opens = [closes[0], *closes[:-1]]
+    highs = [c + spread / 2 for c in closes]
+    lows = [c - spread / 2 for c in closes]
+    return frame(opens, highs, lows, closes)
