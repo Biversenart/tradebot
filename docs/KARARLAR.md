@@ -91,6 +91,12 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-25 | Panel işleri | Backtest (iş parçacığında, yerel Parquet) ve veri indirme (egress üzerinden, herkese açık API) aynı anda en fazla 1 iş; son 30 iş bellekte | CPU ve borsa rate limit'ini koru |
 | 2026-10-25 | Canlı bildirim | Sunucu olay akışı (SSE): RiskAlert + PositionEvent; en fazla 20 bağlantı, yavaş istemcide en eski olay düşer | WebSocket'e gerek yok; tek yönlü yeterli |
 | 2026-10-25 | Grafik çıkış işaretleri | Çıkış fiyatı, pozisyona bağlı dolmuş emirlerin ortalama fiyatından (entry hariç) | Pozisyon satırında çıkış fiyatı yok; emir kaydı kesin |
+| 2026-10-25 | "İlk 20" borsa listesi | 2026 hacim/güven sıralamalarındaki büyük borsalar (CoinGecko/CMK sitelerine doğrudan erişilemedi; ikincil kaynaklar): Binance, Coinbase, OKX, Bybit, Upbit, Kraken, Bitget, Gate, KuCoin, HTX, MEXC, Crypto.com, Bitfinex, Bitstamp, Gemini, BingX, Bitvavo, Bithumb, WhiteBIT, Poloniex (+ mevcut BTCTurk = 21). BitMart kurulu ccxt'de yok; Binance TR kapsam dışı (spec) | Kullanıcı isteği |
+| 2026-10-25 | Yeni borsalar yalnızca spot | Futures yalnızca Binance'te (sembol biçimi, kaldıraç ve reduce-only davranışı borsa başına ayrı doğrulama ister) | Risk |
+| 2026-10-25 | Stop emri olmayan borsalar | Upbit, Bithumb, Bitstamp, Gemini, BTCTurk: strateji kurulmaz ve koordinatör sinyali reddeder (paper dahil); veri/analiz/arbitraj taraması serbest. **Değişiklik:** BTCTurk'te önceden strateji sinyali emre dönüşebiliyor, stop konamayınca pozisyon hemen kapatılıyordu | CLAUDE.md kural 9 |
+| 2026-10-25 | Testnet'siz borsalar | Testnet modunda anahtarsız bağlanır, emir reddedilir (yalnızca veri) | "testnet asla gerçek ağa emir göndermez" |
+| 2026-10-25 | Borsa anahtarları | `<AD>_API_KEY/_SECRET/_PASSWORD`, testnet `<AD>_TESTNET_…`; süreç ortamı `.env`'den önce gelir (Docker); panel yalnızca evet/hayır gösterir | Kural 2 |
+| 2026-10-25 | Müşteri emir kimliği | Kimliğimiz (`tb`+30 hex) borsa biçimine deterministik çevrilir: Gate `t-`+28, Kraken/Bitvavo UUIDv5, Bitfinex 40-bit tamsayı; tekrar denemede aynı kimlik (idempotency). UUID/tamsayı biçimli borsalarda yeniden başlatma sonrası sahipsiz emirler "yabancı" olarak raporlanır, dokunulmaz | Borsa API kuralları |
 
 ## Boyutlama formülleri (Aşama 5)
 
