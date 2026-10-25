@@ -27,6 +27,8 @@ class ExchangeAdapter(ABC):
     name: str
     market_type: str = "spot"
     testnet: bool = False
+    # False: stop orders cannot rest on this exchange -> no strategy positions (rule 9)
+    supports_exchange_stop: bool = True
 
     # ---------------------------------------------------------------- lifecycle
     @abstractmethod

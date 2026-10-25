@@ -159,4 +159,4 @@ def test_backtest_builds_nothing() -> None:
 
 def test_unknown_exchange() -> None:
     with pytest.raises(NotSupportedError):
-        build_exchanges(settings(Mode.PAPER, {"kraken": {"enabled": True}}), egress())
+        build_exchanges(settings(Mode.PAPER, {"nosuchexchange": {"enabled": True}}), egress())

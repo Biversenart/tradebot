@@ -109,6 +109,7 @@ docker compose restart wireguard bot        # tüneli geri getir
    Docker'da `config/config.yaml` → `api.host: 0.0.0.0` yapın (port yalnızca `127.0.0.1:8080`'e açılır).
    Tarayıcı: <http://127.0.0.1:8080> → token ile giriş → büyük kırmızı **KILL SWITCH** butonu, pozisyonlar,
    equity, strateji aç/kapa, analiz raporları. Paneli internete açmayın (gerekirse SSH tüneli/WireGuard ile erişin).
+   Ayrıntı ve sayfalar: `docs/PANEL.md`. Bot olmadan denemek için: `bot panel-demo`.
 
 ## Riskler ve önlemler
 | Risk | Önlem |

@@ -96,6 +96,9 @@ def test_walk_forward_folds_are_out_of_sample() -> None:
 def test_walk_forward_without_enough_data() -> None:
     wf = walk_forward(DF.iloc[:300], "BTC/USDT", "breakout", SMALL)
     assert wf.folds == [] and "yeterli veri yok" in wf.warnings[0]
+    assert wf.sweep_table().empty
+    checks = bias_checks(SMALL.backtest, True, ["BTC/USDT"])
+    assert "yeterli veri yok" in render_html(wf, checks)  # report still renders
 
 
 def test_reports_render(tmp_path: Path) -> None:

@@ -4,23 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from bot.exchanges.profiles import profile
 from bot.net.egress import EgressHttpSession
 from bot.net.errors import EgressUnavailableError, ErrorKind, classify_http_error
 
-# Public, unauthenticated ping endpoints.
-PING_URLS: dict[str, dict[bool, str]] = {
-    "binance": {
-        False: "https://api.binance.com/api/v3/ping",
-        True: "https://testnet.binance.vision/api/v3/ping",
-    },
-    "binance_futures": {
-        False: "https://fapi.binance.com/fapi/v1/ping",
-        True: "https://demo-fapi.binance.com/fapi/v1/ping",
-    },
-    "btcturk": {
-        False: "https://api.btcturk.com/api/v2/server/exchangeinfo",
-        True: "https://api.btcturk.com/api/v2/server/exchangeinfo",
-    },
+BINANCE_FUTURES_PING = {
+    False: "https://fapi.binance.com/fapi/v1/ping",
+    True: "https://demo-fapi.binance.com/fapi/v1/ping",
 }
 
 
@@ -45,10 +35,13 @@ class AccessResult:
 
 
 def ping_url(exchange: str, market_type: str, testnet: bool) -> str:
-    key = "binance_futures" if exchange == "binance" and market_type == "futures" else exchange
-    if key not in PING_URLS:
+    """Public, unauthenticated endpoint of the exchange (from its profile)."""
+    if exchange == "binance" and market_type == "futures":
+        return BINANCE_FUTURES_PING[testnet]
+    p = profile(exchange)  # KeyError for unknown exchanges
+    if not p.ping:
         raise KeyError(f"Erişim testi tanımlı değil: {exchange}")
-    return PING_URLS[key][testnet]
+    return (p.ping_test or p.ping) if testnet else p.ping
 
 
 async def check_exchange_access(

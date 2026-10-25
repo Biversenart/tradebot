@@ -45,10 +45,13 @@ async def test_bearer_api(control: BotControl) -> None:
     assert pos[0]["symbol"] == "BTC/USDT" and pos[0]["targets_hit"] == 1
     assert (await c.get("/api/equity", headers=bearer())).json()[0]["equity"] == "10050"
     r = await c.get("/api/status", headers=bearer())
+    csp = r.headers["content-security-policy"]
+    assert r.headers["x-frame-options"] == "SAMEORIGIN" and "frame-ancestors 'self'" in csp
     assert (
-        r.headers["x-frame-options"] == "DENY"
-        and "frame-ancestors 'none'" in r.headers["content-security-policy"]
+        "script-src 'self';" in csp
+        and "unsafe-inline" not in csp.split("script-src")[1].split(";")[0]
     )
+    assert "cdn" not in csp
 
 
 async def test_kill_switch_button_flow(control: BotControl) -> None:
@@ -95,11 +98,15 @@ async def test_strategy_toggle(control: BotControl) -> None:
 async def test_reports_listing_and_safe_serving(control: BotControl) -> None:
     c = client(control)
     await c.post("/login", data={"token": TOKEN})
-    listing = (await c.get("/reports")).text
-    assert "BTC-USDT_1" in listing and "grafik" in listing
+    r = await c.get("/reports", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/#/analiz"
+    listing = (await c.get("/api/reports")).json()
+    assert listing[0]["name"] == "BTC-USDT_1.md" and listing[0]["chart"] == "BTC-USDT_1.html"
     md = await c.get("/reports/BTC-USDT_1.md")
     assert md.status_code == 200 and "&lt;script&gt;" in md.text  # escaped
-    assert (await c.get("/reports/BTC-USDT_1.html")).text == "<html>chart</html>"
+    chart = await c.get("/reports/BTC-USDT_1.html")
+    assert chart.text == "<html>chart</html>"
+    assert "sandbox allow-scripts" in chart.headers["content-security-policy"]
     for bad in ("..%2Fsecret.md", "%2E%2E%2Fsecret.md", "..secret.md", "missing.md"):
         assert (await c.get(f"/reports/{bad}")).status_code == 404
 

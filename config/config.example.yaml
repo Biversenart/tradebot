@@ -18,7 +18,12 @@ exchanges:
     market_type: spot           # spot | futures
     testnet: true
   btcturk:
-    enabled: false
+    enabled: false              # borsada stop yok: yalnızca veri/arbitraj
+  # Diğer 19 borsa (docs/BORSALAR.md), ör.:
+  # okx:    { enabled: true, testnet: true }
+  # kraken: { enabled: true, testnet: true, symbols: ["BTC/USD", "ETH/USD"] }
+  # Adlar: bingx bitfinex bitget bithumb bitstamp bitvavo bybit coinbase cryptocom gate
+  #        gemini htx kraken kucoin mexc okx poloniex upbit whitebit
 
 universe:
   mode: fixed                   # fixed | scanner

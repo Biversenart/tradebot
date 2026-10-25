@@ -439,6 +439,54 @@ def config_log(
     typer.echo(asyncio.run(ops_commands.config_log(settings, limit)))
 
 
+@app.command("panel-demo")
+def panel_demo(
+    port: Annotated[int, typer.Option("--port")] = 8080,
+    token: Annotated[str | None, typer.Option("--token", help="boş: rastgele üretilir")] = None,
+    host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
+) -> None:
+    """Web paneli SENTETİK verilerle aç (borsa, anahtar, emir yok). Arayüzü denemek için."""
+    import secrets as _secrets
+    import shutil
+
+    import uvicorn
+    from pydantic import SecretStr
+
+    from bot.api.app import create_app
+    from bot.api.demo import build_demo, demo_ticker
+
+    tok = token or _secrets.token_urlsafe(18)
+    if len(tok) < 16:
+        typer.secho("Token en az 16 karakter olmalı.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+    configure_logging("WARNING")
+
+    async def main() -> None:
+        control, panel, base = await build_demo(SecretStr(tok))
+        stop = asyncio.Event()
+        ticker = asyncio.create_task(demo_ticker(panel, stop))
+        server = uvicorn.Server(
+            uvicorn.Config(
+                create_app(control, SecretStr(tok), panel),
+                host=host,
+                port=port,
+                log_level="warning",
+                lifespan="off",
+            )
+        )
+        typer.echo(f"Demo panel: http://{host}:{port}  ·  token: {tok}")
+        typer.echo("SENTETİK veri; gerçek hesap/borsa yok. Kapatmak için Ctrl+C.")
+        try:
+            await server.serve()
+        finally:
+            stop.set()
+            await ticker
+            await control.repo.close()
+            shutil.rmtree(base, ignore_errors=True)
+
+    asyncio.run(main())
+
+
 async def run_bot(settings: Settings, stop: asyncio.Event) -> None:
     """Servisleri başlatır (EventBus, IP doğrulama, heartbeat), durdurma sinyalini bekler."""
     await BotRuntime(settings).run(stop)
