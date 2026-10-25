@@ -179,6 +179,8 @@ class PaperExchange(ExchangeAdapter):
         return await self._require_source().fetch_ticker(symbol)
 
     async def fetch_order_book(self, symbol: str, depth: int = 20) -> OrderBook:
+        if self._source is None and symbol in self._books:
+            return self._books[symbol]  # externally fed book (no live source)
         ob = await self._require_source().fetch_order_book(symbol, depth)
         await self.process_order_book(ob)
         return ob

@@ -7,7 +7,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from bot.config import Settings
+from bot.arbitrage.executor import ArbitrageExecutor
+from bot.arbitrage.service import ArbitrageService
+from bot.config import Mode, Settings
 from bot.core.event_bus import EventBus
 from bot.core.events import CandleEvent
 from bot.exchanges.base import ExchangeAdapter
@@ -20,6 +22,7 @@ from bot.marketdata.feed import MarketDataFeed
 from bot.marketdata.history import warm_up
 from bot.risk.kill_switch import KillSwitch
 from bot.risk.manager import RiskManager
+from bot.risk.portfolio import PortfolioView
 from bot.risk.sizing import GrowthSizer
 from bot.storage.repository import Repository
 from bot.strategies.base import BaseStrategy
@@ -37,6 +40,7 @@ class TradingStack:
     engines: dict[str, ExecutionEngine]
     strategies: list[BaseStrategy] = field(default_factory=list)
     runner: StrategyRunner | None = None
+    arbitrage: ArbitrageService | None = None
 
     @classmethod
     async def build(
@@ -81,7 +85,16 @@ class TradingStack:
             for s in build_enabled(cfg, sym, name)
         ]
         runner = StrategyRunner(bus, strategies) if strategies else None
-        return cls(repo, coord, engines, strategies, runner)
+        arb_cfg = cfg.arbitrage
+        arb: ArbitrageService | None = None
+        if arb_cfg.cross_exchange.enabled or arb_cfg.triangular.enabled:
+            executor = None
+            if settings.mode is Mode.PAPER and arb_cfg.execute_in_paper:
+                executor = ArbitrageExecutor(
+                    exchanges, risk, settings.mode, lambda: PortfolioView(coord.last_equity)
+                )
+            arb = ArbitrageService(arb_cfg, bus, exchanges, repo, executor)
+        return cls(repo, coord, engines, strategies, runner, arb)
 
     async def start(
         self, settings: Settings, stop: asyncio.Event, tasks: list[asyncio.Task[None]]
@@ -107,6 +120,8 @@ class TradingStack:
                     _log.error("reconcile_failed", exchange=eng.adapter.name, error=str(exc))
         await self.warm_up(settings)
         tasks.append(asyncio.create_task(coord.run(stop), name="trading-maintenance"))
+        if self.arbitrage is not None:
+            tasks.append(asyncio.create_task(self.arbitrage.run(stop), name="arbitrage"))
         _log.info(
             "trading_started",
             strategies=[f"{s.name}:{s.symbol}" for s in self.strategies],

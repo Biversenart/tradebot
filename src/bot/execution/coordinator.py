@@ -75,6 +75,7 @@ class TradingCoordinator:
         )
         self._last_close: dict[tuple[str, str], Decimal] = {}
         self._closing_all = False
+        self.last_equity = ZERO
         self._lock = asyncio.Lock()
         bus.subscribe(SignalEvent, self.on_signal)
         bus.subscribe(CandleEvent, self.on_candle)
@@ -141,6 +142,8 @@ class TradingCoordinator:
                     v = b.total * px if px is not None else ZERO
                 values[asset] = values.get(asset, ZERO) + v
                 total += v
+        if total > 0:
+            self.last_equity = total
         return total, values
 
     # ---------------------------------------------------------------- events

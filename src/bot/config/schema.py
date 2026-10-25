@@ -247,13 +247,27 @@ class CrossExchangeConfig(_Strict):
     enabled: bool = False
     pairs: tuple[str, ...] = ()
     min_net_spread_pct: Pct = Field(default=Decimal("0.25"), gt=0)
-    max_leg_latency_ms: int = Field(default=500, gt=0)
+    max_leg_latency_ms: int = Field(default=500, gt=0)  # max order book age / leg skew
+    slippage_buffer_pct: Pct = Field(default=Decimal("0.05"), ge=0)  # beyond book walk
+    max_notional_quote: Decimal = Field(default=Decimal(1000), gt=0)
+    # quote-currency conversion for TRY bridge, e.g. {"btcturk": "USDT/TRY"}
+    fx_symbols: dict[str, str] = Field(default_factory=dict)
 
 
 class TriangularConfig(_Strict):
     enabled: bool = False
     exchange: str = "binance"
     min_net_profit_pct: Pct = Field(default=Decimal("0.15"), gt=0)
+    start_asset: str = "USDT"
+    max_notional_quote: Decimal = Field(default=Decimal(1000), gt=0)
+    max_book_age_ms: int = Field(default=1000, gt=0)
+    # markets watched for cycles (added to the market data feed), e.g. BTC/USDT, ETH/BTC, ETH/USDT
+    symbols: tuple[str, ...] = ()
+
+
+class RebalanceConfig(_Strict):
+    # warn when one asset is below this share of an exchange's arbitrage inventory
+    min_share_pct: Pct = Field(default=Decimal(20), gt=0, lt=50)
 
 
 class FundingRateConfig(_Strict):
@@ -264,6 +278,10 @@ class ArbitrageConfig(_Strict):
     cross_exchange: CrossExchangeConfig = Field(default_factory=CrossExchangeConfig)
     triangular: TriangularConfig = Field(default_factory=TriangularConfig)
     funding_rate: FundingRateConfig = Field(default_factory=FundingRateConfig)
+    rebalance: RebalanceConfig = Field(default_factory=RebalanceConfig)
+    # v1: opportunities are always logged; simulated execution only in paper mode
+    execute_in_paper: bool = True
+    min_interval_seconds: float = Field(default=2.0, ge=0)  # per-route dedup of logs
 
 
 class QualityMultiplierConfig(_Strict):
