@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -215,6 +215,25 @@ class AnalysisConfig(_Strict):
     llm_commentary: bool = False
 
 
+class WalkForwardConfig(_Strict):
+    train_bars: int = Field(default=24 * 180, ge=100)  # ~6 months of 1h bars
+    test_bars: int = Field(default=24 * 60, ge=50)  # ~2 months
+    objective: Literal["expectancy", "profit_factor", "sharpe"] = "expectancy"
+    min_trades: int = Field(default=10, ge=1)
+
+
+class BacktestConfig(_Strict):
+    initial_equity: Decimal = Field(default=Decimal(10_000), gt=0)
+    commission_pct: Pct = Field(default=Decimal("0.1"), ge=0, le=5)  # per side, taker
+    slippage_bps: Decimal = Field(default=Decimal(5), ge=0, le=500)
+    latency_bars: int = Field(default=1, ge=1)  # signal at close t -> fill at open t+latency
+    allow_short: bool = True
+    trailing_atr_mult: Decimal = Field(default=Decimal(2), gt=0)
+    structure_trail_bars: int = Field(default=10, ge=2)
+    walk_forward: WalkForwardConfig = Field(default_factory=WalkForwardConfig)
+    param_grids: dict[str, dict[str, list[Any]]] = Field(default_factory=dict)
+
+
 class StrategyConfig(BaseModel):
     """Strategy parameters vary per strategy; typed per strategy in Aşama 4."""
 
@@ -389,6 +408,7 @@ class AppConfig(_Strict):
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     paper: PaperConfig = Field(default_factory=PaperConfig)
     marketdata: MarketDataConfig = Field(default_factory=MarketDataConfig)
+    backtest: BacktestConfig = Field(default_factory=BacktestConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
 
     @property

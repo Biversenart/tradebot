@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
+import pandas as pd
 import typer
 
 from bot import __version__
@@ -16,6 +17,9 @@ from bot.analysis.data import load_frames
 from bot.analysis.engine import analyze_symbol
 from bot.analysis.plan import best_plan
 from bot.analysis.report import render_report
+from bot.backtest.engine import Backtester
+from bot.backtest.metrics import compute_metrics
+from bot.backtest.runner import NoDataError, default_out_dir, load_history, run_report
 from bot.config import ConfigError, Settings, load_settings
 from bot.config.schema import ExchangeConfig
 from bot.core.events import AlertLevel, RiskAlert
@@ -23,13 +27,17 @@ from bot.core.timeframes import timeframe_seconds
 from bot.exchanges.errors import ExchangeAdapterError
 from bot.exchanges.factory import build_public_adapter
 from bot.log import configure_logging
-from bot.marketdata.history import download_to_parquet, safe_symbol, utc_date
+from bot.marketdata.history import download_to_parquet, parquet_path, safe_symbol, utc_date
+from bot.marketdata.synthetic import generate_ohlcv
 from bot.net.egress import resolve_egress
 from bot.runtime import BotRuntime
+from bot.strategies.registry import STRATEGIES, build_strategy
 
 app = typer.Typer(help="Kripto trade & arbitraj botu", no_args_is_help=True)
 data_app = typer.Typer(help="Geçmiş veri komutları", no_args_is_help=True)
 app.add_typer(data_app, name="data")
+bt_app = typer.Typer(help="Backtest komutları", no_args_is_help=True)
+app.add_typer(bt_app, name="backtest")
 
 ConfigOption = Annotated[Path, typer.Option("--config", "-c", help="YAML config dosyası")]
 EnvOption = Annotated[Path, typer.Option("--env-file", help=".env dosyası")]
@@ -237,6 +245,133 @@ def analyze(
         typer.secho(f"Veri alınamadı ({exc.kind}): {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     raise typer.Exit(code=code)
+
+
+def _bt_frames(
+    symbols: list[str], tf: str, exchange: str, data: Path, since: str | None, until: str | None
+) -> dict[str, pd.DataFrame]:
+    try:
+        return {
+            s: load_history(
+                data,
+                exchange,
+                s,
+                tf,
+                utc_date(since) if since else None,
+                utc_date(until) if until else None,
+            )
+            for s in symbols
+        }
+    except NoDataError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+
+SymbolsOpt = Annotated[list[str], typer.Option("--symbol", "-s", help="tekrarlanabilir")]
+StrategyOpt = Annotated[
+    list[str], typer.Option("--strategy", help="tekrarlanabilir; boş: etkin olanlar")
+]
+
+
+@bt_app.command("run")
+def backtest_run(
+    symbol: SymbolsOpt,
+    strategy: Annotated[str, typer.Option("--strategy")],
+    tf: Annotated[str, typer.Option("--tf")] = "1h",
+    since: Annotated[str | None, typer.Option("--since")] = None,
+    until: Annotated[str | None, typer.Option("--until")] = None,
+    exchange: Annotated[str, typer.Option("--exchange", "-e")] = "binance",
+    data: Annotated[Path, typer.Option("--data")] = Path("data"),
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Tek parametre setiyle backtest (örneklem içi; karar için walkforward kullanın)."""
+    settings = _load_or_exit(config, env_file)
+    frames = _bt_frames(symbol, tf, exchange, data, since, until)
+    cfg = settings.config
+    res = Backtester(frames, lambda s: build_strategy(cfg, strategy, s, exchange), cfg).run()
+    m = compute_metrics(res)
+    for k, v in m.as_dict().items():
+        typer.echo(f"{k:>18}: {v}")
+    typer.echo("Not: Bu sonuç örneklem içidir; §9 kararı için 'bot backtest walkforward' kullanın.")
+
+
+@bt_app.command("walkforward")
+def backtest_walkforward(
+    symbol: Annotated[str, typer.Option("--symbol", "-s")],
+    strategy: Annotated[str, typer.Option("--strategy")],
+    tf: Annotated[str, typer.Option("--tf")] = "1h",
+    since: Annotated[str | None, typer.Option("--since")] = None,
+    until: Annotated[str | None, typer.Option("--until")] = None,
+    exchange: Annotated[str, typer.Option("--exchange", "-e")] = "binance",
+    data: Annotated[Path, typer.Option("--data")] = Path("data"),
+    out: Annotated[Path | None, typer.Option("--out")] = None,
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Walk-forward + parametre taraması; HTML rapor (örneklem dışı sonuçlar)."""
+    settings = _load_or_exit(config, env_file)
+    frames = _bt_frames([symbol], tf, exchange, data, since, until)
+    summary, htmls, _results = run_report(
+        settings.config, frames, [strategy], out or default_out_dir(), "Yerel Parquet verisi."
+    )
+    typer.echo(summary.read_text(encoding="utf-8"))
+    typer.echo(f"HTML: {htmls[0]}")
+
+
+@bt_app.command("report")
+def backtest_report(
+    symbol: SymbolsOpt,
+    strategy: StrategyOpt = [],  # noqa: B006
+    tf: Annotated[str, typer.Option("--tf")] = "1h",
+    since: Annotated[str | None, typer.Option("--since")] = "2022-01-01",
+    until: Annotated[str | None, typer.Option("--until")] = None,
+    exchange: Annotated[str, typer.Option("--exchange", "-e")] = "binance",
+    data: Annotated[Path, typer.Option("--data")] = Path("data"),
+    out: Annotated[Path | None, typer.Option("--out")] = None,
+    config: ConfigOption = DEFAULT_CONFIG,
+    env_file: EnvOption = DEFAULT_ENV,
+) -> None:
+    """Çoklu sembol x strateji walk-forward raporu + §9 karşılaştırmalı OZET.md."""
+    settings = _load_or_exit(config, env_file)
+    names = strategy or [
+        n for n, c in settings.config.strategies.items() if c.enabled and n in STRATEGIES
+    ]
+    if not names:
+        names = list(STRATEGIES)
+    frames = _bt_frames(symbol, tf, exchange, data, since, until)
+    span = ", ".join(
+        f"{s}: {df.index[0]:%Y-%m-%d} → {df.index[-1]:%Y-%m-%d}" for s, df in frames.items()
+    )
+    summary, _htmls, _ = run_report(
+        settings.config,
+        frames,
+        names,
+        out or default_out_dir(),
+        f"Veri: {exchange} {tf} ({span}).",
+    )
+    typer.echo(summary.read_text(encoding="utf-8"))
+    typer.echo(f"Özet: {summary}\nHTML raporlar: {summary.parent}")
+
+
+@data_app.command("synthetic")
+def data_synthetic(
+    symbol: Annotated[list[str], typer.Option("--symbol", "-s")],
+    since: Annotated[str, typer.Option("--since")] = "2022-01-01",
+    until: Annotated[str | None, typer.Option("--until")] = None,
+    tf: Annotated[str, typer.Option("--tf")] = "1h",
+    price: Annotated[float, typer.Option("--price", help="başlangıç fiyatı")] = 100.0,
+    seed: Annotated[int, typer.Option("--seed")] = 0,
+    out: Annotated[Path, typer.Option("--out")] = Path("data"),
+) -> None:
+    """SENTETİK veri üret (borsa adı 'synthetic'; gerçek veriyle karışmaz). Demo/test için."""
+    end = utc_date(until) if until else datetime.now(UTC)
+    for k, sym in enumerate(symbol):
+        df = generate_ohlcv(utc_date(since), end, tf, price, seed + k)
+        path = parquet_path(out, "synthetic", sym, tf)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(path)
+        typer.echo(f"{sym}: {len(df)} sentetik mum -> {path}")
 
 
 async def run_bot(settings: Settings, stop: asyncio.Event) -> None:

@@ -86,7 +86,9 @@ class EventBus:
             raise EventBusFullError("EventBus kuyruğu dolu.") from exc
 
     def _ensure_open(self) -> None:
-        if self._closed:
+        # While the loop is draining after stop(), handlers may still publish follow-up
+        # events (e.g. a candle producing a signal); those are processed before exiting.
+        if self._closed and not self._running:
             raise EventBusClosedError("EventBus durduruldu; yeni olay kabul edilmiyor.")
 
     # ------------------------------------------------------------------ dispatch loop
@@ -100,12 +102,23 @@ class EventBus:
                 item = await self._queue.get()
                 try:
                     if item is _STOP:
+                        await self._drain()
                         return
                     await self._dispatch(cast(Event, item))
                 finally:
                     self._queue.task_done()
         finally:
             self._running = False
+
+    async def _drain(self) -> None:
+        """Process events published by handlers after the stop sentinel."""
+        while not self._queue.empty():
+            item = self._queue.get_nowait()
+            try:
+                if item is not _STOP:
+                    await self._dispatch(cast(Event, item))
+            finally:
+                self._queue.task_done()
 
     async def stop(self) -> None:
         """Stop accepting events; `run()` returns after draining already-queued events."""

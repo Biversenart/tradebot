@@ -110,6 +110,21 @@ strategies:
   dca:             { enabled: false }
   signal_combiner: { enabled: false }
 
+backtest:
+  initial_equity: 10000
+  commission_pct: 0.1            # taraf başı (taker)
+  slippage_bps: 5
+  latency_bars: 1                # sinyal kapanışta -> dolum sonraki mumun açılışında (>=1)
+  allow_short: true
+  trailing_atr_mult: 2.0
+  structure_trail_bars: 10
+  walk_forward:
+    train_bars: 4320             # ~6 ay (1h)
+    test_bars: 1440              # ~2 ay (1h)
+    objective: expectancy        # expectancy | profit_factor | sharpe
+    min_trades: 10
+  param_grids: {}                # ör. { ema_crossover: { fast: [5, 9, 13], slow: [21, 34, 55] } }
+
 arbitrage:
   cross_exchange: { enabled: false, pairs: ["BTC/USDT"], min_net_spread_pct: 0.25, max_leg_latency_ms: 500 }
   triangular:     { enabled: false, exchange: binance, min_net_profit_pct: 0.15 }

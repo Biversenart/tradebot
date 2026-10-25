@@ -43,3 +43,13 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Önündeki bölge | Güç ≥50 karşı bölge, minimum 2R hedefinden önce ise plan reddedilir | "Yetersiz alan" filtresi |
 | 2026-10-02 | Analiz verisi | Önce Parquet; yoksa alt TF'den yeniden örnekleme (UTC, hafta Pazartesi); yoksa borsadan warm-up | Tek 1h dosyasıyla 4h/1d/1w analizi mümkün |
 | 2026-10-02 | Grafik | plotly HTML, plotly.js CDN'den (dosya ~60 KB) | Gömülü sürüm ~4.5 MB olurdu |
+| 2026-10-02 | Strateji yapısı | Her strateji nedensel `compute(df)`; canlı = son satır, backtest = tüm satırlar; `assert_causal` testi | Canlı ve backtest aynı sınıf/kod (spec §5.9), lookahead imkânsız |
+| 2026-10-02 | Backtest dolumu | Sinyal t kapanışında, dolum t+1 açılışında; kayma 5 bps, komisyon %0.1/taraf | Gerçekçi gecikme; gap'te stop'un ötesindeyse işlem atlanır |
+| 2026-10-02 | Aynı mumda stop + TP | Önce stop varsayılır | Muhafazakâr (iyimser sonuçları önler) |
+| 2026-10-02 | Kısmi çıkış | TP1: başlangıç miktarının %40'ı + stop başabaşa; ara TP: kalanın yarısı; son TP: tamamı; TP1 sonrası ATR (2×) trailing | Spec §5.3.i |
+| 2026-10-02 | Zaman bazlı çıkış | TP1'e ulaşmadan 48 mum geçerse kapanışta çık | Çalışmayan setup'ı serbest bırak |
+| 2026-10-02 | Backtest boyutlama (Aşama 4) | Sabit oranlı: güncel bakiyenin %1'i risk, notional ≤ %100 | Aşama 5'te büyüme odaklı boyutlama ile karşılaştırılacak |
+| 2026-10-02 | Walk-forward | 6 ay eğitim / 2 ay test, kayan; objektif R-beklentisi; min 10 işlem | §9 yalnızca örneklem dışı |
+| 2026-10-02 | Overfitting uyarıları | OOS PF < 0.7×IS PF; IS beklenti>0 ama OOS≤0; parametre kararsızlığı (>%70 fold farklı); tepe seçimi (en iyi > 2×medyan); OOS işlem < min | Spec §5.9 |
+| 2026-10-02 | Grid/DCA | Yalnızca long; grid sadece range rejiminde; DCA güçlü düşüşte durur; her alımda koruyucu stop | Spot uyumu ve kural 9 |
+| 2026-10-02 | Sentetik veri | `bot data synthetic` → borsa adı `synthetic` | Ağsız ortamda pipeline doğrulaması; gerçek veriyle karışmaz |

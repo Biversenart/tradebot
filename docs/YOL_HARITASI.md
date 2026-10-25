@@ -42,12 +42,12 @@ Her aşama bitince kutuyu işaretle, testleri çalıştır, README'yi güncelle.
 - [x] `TradePlan` üretici (giriş bölgesi, yapısal SL + ATR tamponu, TP1-3, R:R filtresi, geçersizlik)
 - [x] `bot analyze <SYMBOL>` → Türkçe rapor + plotly HTML grafik
 
-## Aşama 4 — Stratejiler ve backtest
-- [ ] `BaseStrategy`, 5 strateji (spec §5.4)
-- [ ] Olay güdümlü backtest motoru (komisyon, kayma, gecikme)
-- [ ] Metrikler + HTML rapor
-- [ ] Walk-forward ve parametre taraması; out-of-sample raporu
-- [ ] Çıkış yönetimi: kısmi TP, başabaşa stop, trailing, zaman bazlı çıkış
+## Aşama 4 — Stratejiler ve backtest ✅
+- [x] `BaseStrategy`, 5 strateji (spec §5.4)
+- [x] Olay güdümlü backtest motoru (komisyon, kayma, gecikme)
+- [x] Metrikler + HTML rapor
+- [x] Walk-forward ve parametre taraması; out-of-sample raporu
+- [x] Çıkış yönetimi: kısmi TP, başabaşa stop, trailing, zaman bazlı çıkış
 
 ## Aşama 5 — Risk ve emir yürütme
 - [ ] RiskManager (spec §5.6 tüm kontroller)
