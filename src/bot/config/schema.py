@@ -246,6 +246,25 @@ class TelegramConfig(_Strict):
     daily_summary_hour: int = Field(default=23, ge=0, le=23)
 
 
+class MarketDataConfig(_Strict):
+    enabled: bool = True
+    candle_timeframes: tuple[str, ...] = ("1m", "5m", "15m", "1h", "4h", "1d")
+    order_book_depth: int = Field(default=20, ge=1, le=1000)
+    warmup_bars: int = Field(default=300, ge=0)
+
+
+class PaperConfig(_Strict):
+    """Starting balances of the simulated (paper) account."""
+
+    initial_balances: dict[str, Decimal] = Field(default_factory=lambda: {"USDT": Decimal(10_000)})
+
+    @model_validator(mode="after")
+    def _check_balances(self) -> PaperConfig:
+        if any(v < 0 for v in self.initial_balances.values()):
+            raise ValueError("Paper bakiyeleri negatif olamaz.")
+        return self
+
+
 class HeartbeatConfig(_Strict):
     """Periodic ping to an external monitor (URL in `.env` HEARTBEAT_URL)."""
 
@@ -281,6 +300,8 @@ class AppConfig(_Strict):
     operations: OperationsConfig = Field(default_factory=OperationsConfig)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+    paper: PaperConfig = Field(default_factory=PaperConfig)
+    marketdata: MarketDataConfig = Field(default_factory=MarketDataConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
 
     @property

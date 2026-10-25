@@ -45,7 +45,9 @@ def test_config_check_rejects_unconfirmed_live(tmp_path: Path) -> None:
 
 
 async def test_run_bot_stops_cleanly(tmp_path: Path) -> None:
-    settings = load_settings(tmp_path / "yok.yaml", None)
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("marketdata: {enabled: false}\n", encoding="utf-8")
+    settings = load_settings(cfg, None)
     assert settings.mode is Mode.PAPER
     stop = asyncio.Event()
     task = asyncio.create_task(run_bot(settings, stop))

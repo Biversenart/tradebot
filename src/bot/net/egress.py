@@ -105,6 +105,26 @@ class Egress:
         return EgressHttpSession(self)
 
 
+def resolve_egress(settings: Settings) -> Egress:
+    """Egress for this run. testnet/live: strict (errors propagate, fail closed).
+
+    paper/backtest send no real orders: the proxy is used when configured, otherwise
+    traffic goes out directly (warning logged).
+    """
+    if settings.sends_real_orders:
+        return Egress.from_settings(settings)
+    try:
+        return Egress.from_settings(settings)
+    except EgressMisconfiguredError:
+        _log.warning("paper_mode_without_egress_proxy")
+        return Egress(
+            mode=settings.config.egress.mode,
+            proxy=None,
+            expected_ip=settings.secrets.egress_expected_ip,
+            timeout_seconds=float(settings.config.egress.request_timeout_seconds),
+        )
+
+
 class EgressHttpSession:
     """aiohttp session that always routes through the egress (if one is configured).
 
