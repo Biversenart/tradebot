@@ -13,6 +13,7 @@ cp config/config.example.yaml config/config.yaml
 bot config-check                           # config + .env doğrulama, etkin modu gösterir
 bot net-check                              # dış IP + borsa erişim testi
 # Panel: http://127.0.0.1:8080 (API_AUTH_TOKEN ile giriş) · Telegram: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
+bot panel-demo                             # paneli sentetik veriyle dene (borsa/anahtar yok)
 bot data download --symbol BTC/USDT --tf 1h --since 2022-01-01   # geçmiş veri → data/ohlcv/*.parquet
 bot analyze BTC/USDT                       # MTF Türkçe rapor + plotly grafik → reports/analysis/
 bot backtest report -s BTC/USDT -s ETH/USDT -s SOL/USDT --since 2022-01-01   # walk-forward + §9 özeti
@@ -55,6 +56,7 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - `docs/CLAUDE_CODE_PROMPTLARI.md` — her aşama için hazır promptlar
 - `docs/EK_OZELLIKLER.md` — ileri özellik önerileri
 - `docs/KARARLAR.md` — karar günlüğü
+- `docs/PANEL.md` — web paneli: sayfalar, demo modu, güvenlik
 - `docs/OPERASYON.md` — operasyonel güvenlik ağları ve kullanım (kanarya, gölge mod, duyurular…)
 - `docs/BACKTEST_OZET.md` — Aşama 4 backtest özeti (sentetik veri; gerçek veriyle yeniden çalıştırılmalı)
 
@@ -68,4 +70,5 @@ Sabit IP kurulumu: `deploy/README.md`, `deploy/ORACLE_KURULUM.md`, `deploy/LOKAL
 - ✅ Aşama 6 — Arbitraj: cross-exchange (derinlik, ücret, kayma, gecikme, TRY köprüsü) ve üçgen tarayıcılar, leg-risk hedge'li paper yürütme, rebalans uyarıları; fırsatlar DB'ye loglanır
 - ✅ Aşama 7 — Telegram (bildirim + /durum /pozisyonlar /analiz /durdur /devam, günlük özet) ve token korumalı web panel (kill switch butonu, equity, pozisyonlar, strateji aç/kapa, analiz raporları)
 - ✅ Aşama 7.5 — Operasyonel güvenlik ağları: kanarya sermaye tavanı, gölge mod, borsa duyuru takibi, stablecoin depeg, borsa başına bakiye tavanı, hafta sonu/düşük likidite modu, saat kayması koruması, config değişiklik günlüğü, backtest önyargı kontrolleri, `tests/chaos` kaos testleri (`docs/OPERASYON.md`)
+- ✅ Kapsamlı web paneli — 10 sayfa (genel bakış, pozisyonlar, işaretli mum grafiği, stratejiler, risk, arbitraj, panelden backtest/veri indirme, analiz, olaylar, ayarlar), canlı bildirimler, koyu/açık tema, mobil uyum, CDN'siz sıkı CSP, `bot panel-demo` (`docs/PANEL.md`)
 - ⏭️ Sıradaki: Aşama 8 — Paper çalıştırma ve değerlendirme

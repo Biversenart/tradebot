@@ -85,6 +85,12 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Config günlüğü | `config_changes` tablosu: başlangıçta YAML (sırlar hariç) önceki çalıştırmanın anlık görüntüsüyle karşılaştırılır; panel/Telegram/CLI değişiklikleri (kill switch, strateji aç/kapa, tavan, gölge onayı) kaynak ve kişiyle kaydedilir | Spec §5.13 |
 | 2026-10-02 | Akış gözetmeni | Market data akışları beklenmeyen hata veya biten iterator sonrası 1→30 sn geri çekilmeyle yeniden başlatılır; 30 sn'den eski ticker/orderbook emir fiyatlamasında kullanılmaz (plan fiyatıyla limit emre düşülür) | Kaos testinde bulunan açık: bir akış sessizce ölüyordu |
 | 2026-10-02 | Önyargı kontrolleri | Rapor başına: lookahead (kısaltılmış geçmiş), gerçekçi maliyet (komisyon ≥ %0.075/taraf, kayma ≥ 2 bps, gecikme ≥ 1 mum), survivorship (`backtest.delisted_symbols` dahil mi; değilse UYARI), veri boşluğu (> %1 eksik mum UYARI) | Spec §5.13 |
+| 2026-10-25 | Panel ön yüzü | Derleme adımı olmayan düz HTML/CSS/JS (ES modülleri), FastAPI'den statik sunulur; plotly.js kurulu Python paketinden (`/vendor/plotly.min.js`), CDN yok | Bağımlılık/derleme zinciri yok; panel internetsiz de çalışır |
+| 2026-10-25 | Panel CSP | `script-src 'self'` (satır içi script ve `eval` yok); rapor HTML'leri ayrı CSP + `sandbox allow-scripts` ile, CDN etiketi yerel plotly'ye çevrilerek sunulur; iframe için `X-Frame-Options: SAMEORIGIN` | XSS etkisini sınırla; raporlar panel çerezine/API'ye erişemez |
+| 2026-10-25 | Panelden ayar düzenleme | Risk/strateji parametreleri panelden düzenlenmez (salt okunur görünüm); değişiklik config.yaml + yeniden başlatma ile | Para kararları dosyada, sürüm kontrolünde ve config günlüğünde kalsın |
+| 2026-10-25 | Panel işleri | Backtest (iş parçacığında, yerel Parquet) ve veri indirme (egress üzerinden, herkese açık API) aynı anda en fazla 1 iş; son 30 iş bellekte | CPU ve borsa rate limit'ini koru |
+| 2026-10-25 | Canlı bildirim | Sunucu olay akışı (SSE): RiskAlert + PositionEvent; en fazla 20 bağlantı, yavaş istemcide en eski olay düşer | WebSocket'e gerek yok; tek yönlü yeterli |
+| 2026-10-25 | Grafik çıkış işaretleri | Çıkış fiyatı, pozisyona bağlı dolmuş emirlerin ortalama fiyatından (entry hariç) | Pozisyon satırında çıkış fiyatı yok; emir kaydı kesin |
 
 ## Boyutlama formülleri (Aşama 5)
 
