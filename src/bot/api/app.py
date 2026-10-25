@@ -320,6 +320,10 @@ def create_app(control: BotControl, token: SecretStr, panel: PanelData | None = 
     async def config(_: Auth) -> dict[str, Any]:
         return data.config()
 
+    @app.get("/api/exchanges")
+    async def exchanges(_: Auth) -> list[dict[str, Any]]:
+        return data.exchanges()
+
     @app.get("/api/events")
     async def events(_: Auth, limit: int = 50) -> list[dict[str, Any]]:
         return await control.events(min(limit, 500))

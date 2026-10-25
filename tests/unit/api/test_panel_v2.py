@@ -359,3 +359,16 @@ async def test_demo_builds_with_consistent_data(tmp_path: Path) -> None:
         assert (base / "data").exists()
     finally:
         await control.repo.close()
+
+
+async def test_exchanges_listing_never_exposes_keys(
+    world: tuple[httpx.AsyncClient, PanelData],
+) -> None:
+    c, _ = world
+    rows = await get(c, "/api/exchanges")
+    assert isinstance(rows, list) and len(rows) == 21
+    by = {r["name"]: r for r in rows}
+    assert by["upbit"]["exchange_stop"] is False and by["okx"]["needs_password"] is True
+    assert by["binance"]["futures"] is True and by["kraken"]["quote"] == "USD"
+    assert set(by["okx"]) >= {"keys_live", "keys_testnet"}
+    assert all(isinstance(r["keys_live"], bool) for r in rows)  # yes/no only

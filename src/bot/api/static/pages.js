@@ -594,7 +594,8 @@ const settings = {
   slug: "ayarlar",
   title: "Ayarlar",
   async render(view) {
-    const c = await api("/api/config");
+    const [c, exs] = await Promise.all([api("/api/config"), api("/api/exchanges")]);
+    const yes = (v) => (v ? '<span class="pos">✔</span>' : '<span class="muted">–</span>');
     view.innerHTML = `<div class="grid two">
         <div class="card"><h2>Çalışma modu</h2>
           <p><span class="pill ${c.sends_real_orders ? "bad" : "info"}">${esc(String(c.mode).toUpperCase())}</span>
@@ -604,6 +605,18 @@ const settings = {
           <p class="small">Risk ve strateji parametreleri güvenlik için panelden düzenlenmez: <span class="mono">config/config.yaml</span> dosyasını değiştirip botu yeniden başlatın. Her değişiklik önceki değeriyle <a href="#/olaylar">config günlüğüne</a> yazılır; testnet/live'da değişen strateji parametreleri önce gölgede çalışır.</p>
           <p class="small">Panelden yapılabilenler: kill switch / devam, strateji aç-kapa (yeniden başlatmada config'e döner), kanarya tavanı, gölge onayı, analiz, backtest, veri indirme.</p></div>
       </div>
+      <div class="card flush"><h2>Borsalar</h2>
+        ${table(exs, [
+          { key: "label", label: "Borsa", fmt: (v, r) => `<b>${esc(v)}</b> <span class="muted small mono">${esc(r.name)}</span>` },
+          { key: "enabled", label: "Etkin", fmt: (v, r) => (v ? `<span class="pill good">${esc(r.market_type)}${r.testnet ? " · testnet" : ""}</span>` : '<span class="muted">kapalı</span>') },
+          { key: "quote", label: "Kotasyon" },
+          { key: "exchange_stop", label: "Borsada stop", fmt: (v) => (v ? '<span class="pos">✔</span>' : '<span class="neg" title="Strateji pozisyonu açılmaz (kural 9)">✖ yalnızca veri</span>') },
+          { key: "sandbox", label: "Testnet", fmt: yes },
+          { key: "websocket", label: "WebSocket", fmt: yes },
+          { key: "keys_live", label: "Anahtar (live/test)", fmt: (v, r) => `${yes(v)} / ${yes(r.keys_testnet)}${r.needs_password ? ' <span class="badge" title="API passphrase gerekir">pass</span>' : ""}` },
+          { key: "note", label: "Not", wrap: true, fmt: (v) => `<span class="small muted">${esc(v)}</span>` },
+        ])}
+        <p class="muted small" style="padding:0 16px 12px">Etkinleştirmek için config.yaml → <span class="mono">exchanges.&lt;ad&gt;.enabled: true</span>; anahtarlar yalnızca .env'de (<span class="mono">&lt;AD&gt;_API_KEY / _API_SECRET / _API_PASSWORD</span>, testnet için <span class="mono">&lt;AD&gt;_TESTNET_…</span>). Ayrıntı: docs/BORSALAR.md</p></div>
       <div class="card"><div class="row"><h2 style="margin:0">Geçerli yapılandırma</h2><span class="spacer"></span><button class="btn small" id="cpy">JSON kopyala</button></div>
         <p class="muted small">API anahtarları ve tokenlar yapılandırmanın parçası değildir; burada gösterilmez.</p>
         <div class="tree">${tree(c.config)}</div></div>`;

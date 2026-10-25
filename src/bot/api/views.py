@@ -23,6 +23,7 @@ from bot.backtest.runner import NoDataError, load_history
 from bot.control import BotControl
 from bot.core.event_bus import EventBus
 from bot.core.events import PositionEvent, RiskAlert
+from bot.exchanges.profiles import PROFILES
 from bot.execution.coordinator import TradingCoordinator
 
 ZERO = Decimal(0)
@@ -336,6 +337,33 @@ class PanelData:
             }
             for a in rows
         ]
+
+    def exchanges(self) -> list[dict[str, Any]]:
+        """Supported exchanges, their capabilities and whether keys are configured (yes/no
+        only — key values never leave the process)."""
+        s = self.control.settings
+        out = []
+        for name, p in sorted(PROFILES.items(), key=lambda kv: kv[1].label.lower()):
+            ex = s.config.exchanges.get(name)
+            out.append(
+                {
+                    "name": name,
+                    "label": p.label,
+                    "enabled": bool(ex and ex.enabled),
+                    "market_type": ex.market_type if ex else "spot",
+                    "testnet": bool(ex.testnet) if ex else None,
+                    "sandbox": p.sandbox,
+                    "exchange_stop": p.exchange_stop,
+                    "websocket": p.websocket,
+                    "futures": p.futures,
+                    "quote": p.quote,
+                    "needs_password": p.needs_password,
+                    "keys_live": (name, False) in s.exchange_keys,
+                    "keys_testnet": (name, True) in s.exchange_keys,
+                    "note": p.note,
+                }
+            )
+        return out
 
     def config(self) -> dict[str, Any]:
         s = self.control.settings
