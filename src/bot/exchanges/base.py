@@ -20,6 +20,7 @@ from bot.core.models import (
     Ticker,
     Trade,
 )
+from bot.exchanges.errors import OrderNotFoundError
 
 
 class ExchangeAdapter(ABC):
@@ -93,6 +94,13 @@ class ExchangeAdapter(ABC):
 
     @abstractmethod
     async def fetch_order(self, order_id: str, symbol: str) -> Order: ...
+
+    async def fetch_order_by_client_id(self, client_order_id: str, symbol: str) -> Order:
+        """Look an order up by our idempotent client id (used after timeouts / restarts)."""
+        for o in await self.fetch_open_orders(symbol):
+            if o.client_order_id == client_order_id:
+                return o
+        raise OrderNotFoundError(f"{client_order_id} bulunamadı")
 
     # ---------------------------------------------------------------- clock
     @abstractmethod

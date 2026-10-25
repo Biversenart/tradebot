@@ -495,6 +495,13 @@ class CcxtAdapter(ExchangeAdapter):
     async def fetch_order(self, order_id: str, symbol: str) -> Order:
         return self._order(await self._call(self._client.fetch_order, order_id, symbol))
 
+    async def fetch_order_by_client_id(self, client_order_id: str, symbol: str) -> Order:
+        raw = await self._call(
+            self._client.fetch_order, None, symbol, {"origClientOrderId": client_order_id}
+        )
+        raw.setdefault("clientOrderId", client_order_id)
+        return self._order(raw)
+
     # ---------------------------------------------------------------- clock
     async def server_time_offset(self) -> timedelta:
         before = datetime.now(UTC)

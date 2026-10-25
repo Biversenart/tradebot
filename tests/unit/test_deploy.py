@@ -100,4 +100,4 @@ def test_shell_syntax(script: Path) -> None:
     bash = shutil.which("bash")
     if bash is None:
         pytest.skip("bash yok")
-    subprocess.run([bash, "-n", str(script)], check=True)  # noqa: S603
+    subprocess.run([bash, "-n", str(script)], check=True)

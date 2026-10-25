@@ -382,6 +382,15 @@ class MarketDataConfig(_Strict):
     warmup_bars: int = Field(default=300, ge=0)
 
 
+class ExecutionSettings(_Strict):
+    enabled: bool = True  # strategies -> risk -> orders (needs marketdata.enabled)
+    order_timeout_seconds: float = Field(default=60, gt=0)
+    poll_interval_seconds: float = Field(default=2, gt=0)
+    max_retries: int = Field(default=3, ge=0, le=10)
+    maintenance_interval_seconds: float = Field(default=30, gt=0)
+    reconcile_on_start: bool = True
+
+
 class PaperConfig(_Strict):
     """Starting balances of the simulated (paper) account."""
 
@@ -432,6 +441,7 @@ class AppConfig(_Strict):
     paper: PaperConfig = Field(default_factory=PaperConfig)
     marketdata: MarketDataConfig = Field(default_factory=MarketDataConfig)
     backtest: BacktestConfig = Field(default_factory=BacktestConfig)
+    execution: ExecutionSettings = Field(default_factory=ExecutionSettings)
     api: ApiConfig = Field(default_factory=ApiConfig)
 
     @property

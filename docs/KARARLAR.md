@@ -57,6 +57,14 @@ Belirsiz finansal/teknik kararlar ve varsayımlar burada kayıt altına alınır
 | 2026-10-02 | Duraklatılan strateji×coin | 168 saat bekleme sonrası pencere sıfırlanıp yeniden denenir | İşlem yoksa yeni kanıt da yok; kalıcı duraklatma iyi stratejiyi de öldürüyordu |
 | 2026-10-02 | Kill switch kalıcılığı | Durum `KillSwitchState.to_dict()` ile saklanır, yeniden başlatmada geri yüklenir | Yeniden başlatma kill switch'i kaldırmamalı |
 | 2026-10-02 | Emir onayı | `ApprovedIntent` yalnızca RiskManager'ın özel jetonuyla oluşturulabilir; yürütme yalnızca onu kabul eder | Kural 4'ün tip seviyesinde garantisi |
+| 2026-10-02 | Borsa tarafı koruma | Giriş dolar dolmaz dolan miktar için STOP_MARKET konur; konamazsa pozisyon hemen piyasadan kapatılır | Kural 9 |
+| 2026-10-02 | TP yönetimi | TP/trailing/zaman çıkışı bot tarafında (mum kapanışında); stop daima borsada. Çıkışta: stop iptal → piyasa azaltma → kalan için yeni stop | Spot'ta stop emri bakiyeyi kilitler; OCO tek TP'ye izin verir |
+| 2026-10-02 | OCO | Ayrı OCO emri yerine "borsada stop + bot yönetimli TP" kullanılır | Çok kademeli TP ve trailing ile uyumlu; bot kapalıyken stop korur |
+| 2026-10-02 | Idempotency | client_order_id = "tb" + sha1(intent_id:rol:n)[:30]; ağ hatasında yeniden göndermeden önce bu id ile sorgu | Kopuk yanıtta çift emir yok |
+| 2026-10-02 | Zaman aşımı | Dolmayan giriş `order_timeout_seconds` (60 sn) sonunda iptal; kısmi dolum pozisyon olur | Bayat fiyattan emir bırakılmaz |
+| 2026-10-02 | Reconciliation | Açılışta: DB açık emirleri tazele, kendi öneklerimizi sahiplen, yabancılara dokunma, her pozisyon için canlı stop doğrula (yoksa koy, olmuyorsa kapat), spot bakiyesi pozisyondan azsa düzelt | Yeniden başlatmada borsa = gerçek kaynak |
+| 2026-10-02 | Decimal saklama | DB'de Decimal metin olarak (DecimalString), datetime daima UTC/tz-aware | SQLite DECIMAL desteklemez; kayıpsız |
+| 2026-10-02 | Testnet doğrulaması | Reconciliation PaperExchange "çökme/yeniden başlatma" senaryolarıyla birim testinde; gerçek testnet testi `integration` işaretli | Ortam testnet'e erişemiyor |
 
 ## Boyutlama formülleri (Aşama 5)
 

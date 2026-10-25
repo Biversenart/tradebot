@@ -163,6 +163,14 @@ operations:
 notify:
   telegram: { enabled: true, daily_summary_hour: 23 }
 
+execution:
+  enabled: true                  # strateji -> risk -> emir (marketdata.enabled gerekir)
+  order_timeout_seconds: 60      # dolmayan kısım iptal edilir
+  poll_interval_seconds: 2
+  max_retries: 3                 # ağ hatasında; client_order_id ile idempotent
+  maintenance_interval_seconds: 30   # borsa stop senkronu, equity, kill switch
+  reconcile_on_start: true
+
 marketdata:
   enabled: true
   candle_timeframes: ["1m", "5m", "15m", "1h", "4h", "1d"]   # trade akışından oluşturulan mumlar

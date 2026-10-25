@@ -1,4 +1,4 @@
-"""Wires the long-running services together (EventBus, IP guard, heartbeat)."""
+"""Wires the long-running services together (EventBus, IP guard, heartbeat, trading)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from bot.net.errors import EgressMisconfiguredError
 from bot.net.exchange_access import check_exchange_access, ping_url
 from bot.net.ip_guard import IpFetcher, IpGuard
 from bot.notify.heartbeat import Heartbeat, Pinger
+from bot.trading import TradingStack
 
 _log = get_logger("bot")
 
@@ -67,6 +68,8 @@ class BotRuntime:
                     )
                 )
 
+        self.trading: TradingStack | None = None
+        self._ready_feeds: list[MarketDataFeed] = []
         self.heartbeat: Heartbeat | None = None
         url = settings.secrets.heartbeat_url
         if cfg.heartbeat.enabled and url is not None:
@@ -126,6 +129,18 @@ class BotRuntime:
                     )
                 )
                 continue
+            self._ready_feeds.append(feed)
+        cfg = self.settings.config
+        if cfg.execution.enabled and self._ready_feeds and self.settings.mode is not Mode.BACKTEST:
+            self.trading = await TradingStack.build(
+                self.settings,
+                self.bus,
+                {f.adapter.name: f.adapter for f in self._ready_feeds},
+                {f.adapter.name: f for f in self._ready_feeds},
+                self.orders_allowed,
+            )
+            await self.trading.start(self.settings, stop, tasks)
+        for feed in self._ready_feeds:
             tasks.append(asyncio.create_task(feed.run(stop), name=f"feed:{feed.adapter.name}"))
 
     async def run(self, stop: asyncio.Event) -> None:
@@ -148,6 +163,9 @@ class BotRuntime:
             for t in tasks:
                 t.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            if self.trading is not None:
+                with contextlib.suppress(Exception):
+                    await self.trading.close()
             for ex in self.exchanges.values():
                 with contextlib.suppress(Exception):
                     await ex.close()

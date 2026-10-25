@@ -14,6 +14,9 @@ WORKDIR /app
 COPY --from=build /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl \
     && mkdir -p /app/config /app/data && chown -R bot:bot /app
+# DB migrations: docker compose run --rm bot alembic upgrade head
+COPY --chown=bot:bot alembic.ini /app/alembic.ini
+COPY --chown=bot:bot alembic /app/alembic
 USER bot
 # config/config.yaml ve .env çalışma anında bağlanır (imaja girmez).
 CMD ["bot", "run", "--config", "/app/config/config.yaml"]
