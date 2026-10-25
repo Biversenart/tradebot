@@ -11,6 +11,7 @@ from bot.exchanges.errors import NotSupportedError
 
 class BtcturkAdapter(CcxtAdapter):
     poll_interval = 2.0
+    supports_exchange_stop = False  # no stop orders on BTCTurk -> data / arbitrage only
 
     def __init__(self, client: Any, *, testnet: bool = False) -> None:
         super().__init__("btcturk", client, market_type="spot", testnet=testnet, supports_ws=False)

@@ -72,5 +72,9 @@ async def test_unreachable_is_network() -> None:
 def test_ping_urls() -> None:
     assert ping_url("binance", "spot", True) == "https://testnet.binance.vision/api/v3/ping"
     assert ping_url("binance", "futures", False) == "https://fapi.binance.com/fapi/v1/ping"
+    assert ping_url("kraken", "spot", False) == "https://api.kraken.com/0/public/Time"
+    # no sandbox: testnet mode pings the real public endpoint (data only, no orders)
+    assert ping_url("kraken", "spot", True) == "https://api.kraken.com/0/public/Time"
+    assert "api-testnet.bybit.com" in ping_url("bybit", "spot", True)
     with pytest.raises(KeyError):
-        ping_url("kraken", "spot", False)
+        ping_url("nosuchexchange", "spot", False)

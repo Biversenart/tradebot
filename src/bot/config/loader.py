@@ -12,13 +12,14 @@ Never bypass or shorten these checks.
 from __future__ import annotations
 
 import ipaddress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import ValidationError
 
+from bot.config.credentials import ExchangeKeys, load_exchange_keys
 from bot.config.schema import AppConfig, Mode
 from bot.config.secrets import Secrets
 
@@ -32,6 +33,8 @@ class Settings:
     config: AppConfig
     secrets: Secrets
     mode: Mode
+    # (exchange, testnet) -> keys, read from env / .env (rule 2: never from config)
+    exchange_keys: dict[tuple[str, bool], ExchangeKeys] = field(default_factory=dict)
 
     @property
     def sends_real_orders(self) -> bool:
@@ -116,4 +119,5 @@ def load_settings(config_path: Path, env_file: Path | None = Path(".env")) -> Se
         )
         raise ConfigError(f".env doğrulanamadı: {problems}") from exc
     mode = resolve_trading_mode(secrets, config)
-    return Settings(config=config, secrets=secrets, mode=mode)
+    keys = load_exchange_keys(config.exchanges, env_file)
+    return Settings(config=config, secrets=secrets, mode=mode, exchange_keys=keys)

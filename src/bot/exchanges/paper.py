@@ -123,6 +123,8 @@ class PaperExchange(ExchangeAdapter):
         self.name = name
         self.market_type = data_source.market_type if data_source else "spot"
         self.testnet = False
+        # mirror the real exchange: paper results must not rely on stops it cannot hold
+        self.supports_exchange_stop = data_source.supports_exchange_stop if data_source else True
         self._source = data_source
         self._free: dict[str, Decimal] = dict(initial_balances or {})
         self._used: dict[str, Decimal] = {}
